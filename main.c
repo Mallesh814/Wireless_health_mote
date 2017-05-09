@@ -110,9 +110,9 @@ int main(void) {
     uint32_t deci = 0, ble_active = 0;
 	char ascii[6]="\0";
 	char num[10]="\0";
-	uint8_t tx_buf[] = "0123456789ABCDEF";
+	uint8_t tx_buf[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	uint8_t rx_buf[] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','0','\0'};
-	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 	uint32_t i;
 	uint32_t averageDC = 6710886;
@@ -122,6 +122,8 @@ int main(void) {
 	uint32_t correction1300 = 6710886;
 	uint32_t dcChannel, acChannel;
 	uint32_t dac_val=0;
+
+	uint32_t sramAddrPtr = 0, sramData = 0, temp = 0, mask = 0;
 
     uint8 adv_data[] = {
         0x02, // field length
@@ -198,18 +200,25 @@ int main(void) {
 	transfer(num, debugConsole);
     transfer("\n\r", debugConsole);
 
-
+    /*
 	adcHandle = ADS1294_Init(SSI3_BASE,2000000);
 	while(adcHandle == 0)
 		adcHandle = ADS1294_Init(SSI3_BASE,2000000);
+    transfer("SPI Initialized", debugConsole);
 
-	transfer("SPI Initialized", debugConsole);
 
     dacHandle = InitI2C(I2C1_BASE,1);
 	transfer("I2C Initialized", debugConsole);
+    */
 
-	InitFLASH();
+    FLASHM25P_Init(SSI0_BASE, 10000000);
     transfer("FLASH Initialized\n\r", debugConsole);
+
+    deci = M25P_ReadID();
+    dec_ascii(ascii, deci);
+    transfer("FLASH Status : ", debugConsole);
+    transfer(ascii, debugConsole);
+    transfer("\n\r", debugConsole);
 
     deci = M25P_readStatus();
     dec_ascii(ascii, deci);
@@ -217,8 +226,36 @@ int main(void) {
     transfer(ascii, debugConsole);
     transfer("\n\r", debugConsole);
 
+//    InitSRAM();
+    SRAM23LCV_Init(SSI0_BASE, 1000000);
+    transfer("SRAM Initialized\n\r", debugConsole);
+    deci = SRAMReadMode();
+    dec_ascii(ascii, deci);
+    transfer("SRAM Mode Status : ", debugConsole);
+    transfer(ascii, debugConsole);
+    transfer("\n\r", debugConsole);
+
     ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
 	change_state(state_advertising);
+
+	SRAMWriteByte(99, sramAddrPtr);
+
+    deci = SRAMReadByte(sramAddrPtr);
+    dec_ascii(ascii, deci);
+    transfer("SRAM Read Byte : ", debugConsole);
+    transfer(ascii, debugConsole);
+    transfer("\n\r", debugConsole);
+
+    sramAddrPtr++;
+    SRAMWriteData(tx_buf, 36, sramAddrPtr);
+    SRAMReadData(buffer, 36, sramAddrPtr);
+    transfer("SRAM Read Data : ", debugConsole);
+    transfer(buffer, debugConsole);
+    transfer("\n\r", debugConsole);
+
+    sramData = 0;
+    sramAddrPtr = 0;
+    /* while(1);
 
 	dac_val = 0x7FF;
 	decimal = dac_val << 4;
@@ -245,6 +282,7 @@ int main(void) {
 	buffer[2] = decimal >> 8;
 	buffer[3] = decimal & 0x00FF;
 	I2C_Write(dacHandle, buffer, 4);
+    */
 
     TimerConfig2(2000, 5000);
     transfer("Timer Started\n\r", debugConsole);
@@ -330,8 +368,42 @@ int main(void) {
     	if(timer_int){
 			timer_int = 0;
 
+			sramData++;
+			SRAMWriteByte(sramData, sramAddrPtr);
+		    sramAddrPtr += 1;
+
+		    if (sramAddrPtr == 0x20){
+		        sramData = 1;
+		        sramAddrPtr = 0;
+		        while(sramAddrPtr != 0x20){
+	                temp = SRAMReadByte(sramAddrPtr);
+                    transfer("\n\r Expected : ", debugConsole);
+                    dec_ascii(num, sramData);
+                    transfer(num, debugConsole);
+                    transfer("\n\r Received : ", debugConsole);
+                    dec_ascii(num, temp);
+                    transfer(num, debugConsole);
+	                if(sramData - temp){
+	                    transfer("Data MisMatch in location : ", debugConsole);
+	                    dec_ascii(num, sramAddrPtr);
+	                    transfer(num, debugConsole);
+	                    transfer("\n\r Expected : ", debugConsole);
+                        dec_ascii(num, sramData);
+                        transfer(num, debugConsole);
+                        transfer("\n\r Received : ", debugConsole);
+                        dec_ascii(num, temp);
+                        transfer(num, debugConsole);
+	                }
+	                sramData = (temp + 1)%256;
+	                sramAddrPtr++;
+		        }
+		        while(1);
+		    }
+
+
+			/*
 			buffer[0] = RDATA;
-			SPI_Read_mod(adcHandle,buffer,15);
+			SPI_Read(adcHandle, ads1294_cs, buffer,15);
 			GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0X00);	// Toggle LED0 everytime a key is pressed
 
 			switch(mux){
@@ -421,6 +493,8 @@ int main(void) {
 			default : mux = 0;
 				break;
 			}
+			*/
+
 			transfer("\n\r", debugConsole);
 
 			/*

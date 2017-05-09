@@ -18,13 +18,7 @@
 #include "driverlib/sysctl.h"
 
 #include "configs.h"
-
-
-//SSI Base and FSS Pin Info
-#define LCV_SSI_BASE SSI0_BASE
-#define LCV_FSS_PERIPH SYSCTL_PERIPH_GPIOC
-#define LCV_FSS_GPIO GPIO_PORTC_BASE
-#define LCV_FSS_PIN GPIO_PIN_6
+#include "communication.h"
 
 //Instruction set
 #define SRAM_INS_READ	0x03	//Read data from memory array beginning at selected address
@@ -40,12 +34,20 @@
 #define SRAM_MODE_SEQUENTIAL	0x40
 
 
+#define SRAM_MAX_ADDRESS    0x1FFFFh
+
+/*
+//SSI Base and FSS Pin Info
+#define LCV_SSI_BASE SSI0_BASE
+#define LCV_FSS_PERIPH SYSCTL_PERIPH_GPIOC
+#define LCV_FSS_GPIO GPIO_PORTC_BASE
+#define LCV_FSS_PIN GPIO_PIN_6
+*/
+
+ssi_deviceHandle sram23LcvHandle;
 uint32_t ram_address;
 
-#define SRAM_MAX_ADDRESS	0x1FFFFh
-
-
-void InitSRAM(void);
+uint32_t SRAM23LCV_Init(uint32_t ui32Base, uint32_t ui32BitRate);
 
 void SRAMSetMode(uint8_t mode);
 
@@ -61,6 +63,6 @@ uint8_t SRAMReadByte(uint32_t address);
 
 void SRAMReadData(uint8_t *buffer, uint8_t buffer_size, uint32_t address);
 
-void SRAMFillData(uint8_t value, uint32_t lenght, uint32_t address);
+//void SRAMFillData(uint8_t value, uint32_t lenght, uint32_t address);
 
 #endif /* SRAM_23LCV1024_H_ */

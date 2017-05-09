@@ -44,38 +44,6 @@
 #include "communication.h"
 
 /***************************************************************************//**
- * @brief Initializes the SPI communication peripheral.
- *
- * @param lsbFirst - Transfer format (0 or 1).
- *                   Example: 0x0 - MSB first.
- *                            0x1 - LSB first.
- * @param clockFreq - SPI clock frequency (Hz).
- *                    Example: 1000 - SPI clock frequency is 1 kHz.
- * @param clockPol - SPI clock polarity (0 or 1).
- *                   Example: 0x0 - Idle state for clock is a low level; active
- *                                  state is a high level;
- *	                      0x1 - Idle state for clock is a high level; active
- *                                  state is a low level.
- * @param clockEdg - SPI clock edge (0 or 1).
- *                   Example: 0x0 - Serial output data changes on transition
- *                                  from idle clock state to active clock state;
- *                            0x1 - Serial output data changes on transition
- *                                  from active clock state to idle clock state.
- *
- * @return status - Result of the initialization procedure.
- *                  Example: 1 - if initialization was successful;
- *                           0 - if initialization was unsuccessful.
-*******************************************************************************/
-unsigned char SPI_Init(unsigned char lsbFirst,
-                       unsigned long clockFreq,
-                       unsigned char clockPol,
-                       unsigned char clockEdg)
-{
-    /* Add your code here. */
-	InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_3, SSI_MODE_MASTER, 1000000, 8, 0);
-}
-
-/***************************************************************************//**
  * @brief Reads data from SPI.
  *
  * @param slaveDeviceId - The ID of the selected slave device.
@@ -85,61 +53,27 @@ unsigned char SPI_Init(unsigned char lsbFirst,
  *
  * @return Number of read bytes.
 *******************************************************************************/
-unsigned char SPI_Read(uint32_t slaveDeviceId,
-                       unsigned char* data,
-                       unsigned char bytesNumber)
+void SPI_Read(ssi_deviceHandle deviceHandle,
+              unsigned char* data,
+              unsigned char bytesNumber)
 {
-	uint8_t i         = 0;
-	uint8_t count     = 0;
-	int32_t i32Status;
+	uint8_t i = 0;
 	uint32_t ui32Receive;
 
-	while(SSIDataGetNonBlocking(SSI3_BASE, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
+	while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive));  // Clear FIFO Before Initiation a read Operation.
 
-	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0X00);	// PULL DOWN Slave Select PIN
-	for(i=0; i <= bytesNumber; ++i){
-		SSIDataPut(SSI3_BASE, data[i]);
-	}
-	while(SSIBusy(SSI3_BASE));
-	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0XFF);	// PULL UP Slave Select PIN
-
-	count = 0;
-	for(i=0; i <= bytesNumber; ++i){
-		i32Status = SSIDataGetNonBlocking(SSI3_BASE, &ui32Receive);
-		if(i32Status) {
-			count++;
-			data[i] = 0x00FF & ui32Receive;
-		}
-	}
-
-	if(count != (bytesNumber+1))
-		return -1;
-
-	while(SSIDataGetNonBlocking(SSI3_BASE, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
-	return count;
-}
-
-
-
-void SPI_Read_mod(uint32_t slaveDeviceId,
-                       unsigned char* data,
-                       unsigned char bytesNumber)
-{
-	uint8_t i         = 0;
-	uint32_t ui32Receive;
-
-	while(SSIDataGetNonBlocking(SSI3_BASE, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
-
-	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0X00);	// PULL DOWN Slave Select PIN
-	for(i=0; i <= bytesNumber; ++i){
-		SSIDataPut(SSI3_BASE, data[i]);
-		SSIDataGet(SSI3_BASE, &ui32Receive);
+    GPIOPinWrite(deviceHandle.csPort,deviceHandle.csPin, 0X00);         // PULL DOWN Slave Select PIN
+//	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0X00);         // PULL DOWN Slave Select PIN
+	for(i=0; i < bytesNumber; ++i){
+		SSIDataPut(deviceHandle.ssiBase, data[i]);
+		SSIDataGet(deviceHandle.ssiBase, &ui32Receive);
 		data[i] = 0x00FF & ui32Receive;
 	}
-	while(SSIBusy(SSI3_BASE));
-	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0XFF);	// PULL UP Slave Select PIN
+	while(SSIBusy(deviceHandle.ssiBase));
+//    GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0XFF);         // PULL UP Slave Select PIN
+	GPIOPinWrite(deviceHandle.csPort,deviceHandle.csPin, 0XFF);         // PULL UP Slave Select PIN
 
-	while(SSIDataGetNonBlocking(SSI3_BASE, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
+	while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive));  // Clear FIFO After a read Operation.
 }
 
 
@@ -153,23 +87,25 @@ void SPI_Read_mod(uint32_t slaveDeviceId,
  *
  * @return Number of written bytes.
 *******************************************************************************/
-unsigned char SPI_Write(uint32_t slaveDeviceId,
+unsigned char SPI_Write(ssi_deviceHandle deviceHandle,
                         unsigned char* data,
                         unsigned char bytesNumber)
 {
 	uint8_t i		= 0;
 	uint32_t ui32Receive;
 
-	while(SSIDataGetNonBlocking(SSI3_BASE, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
+	while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
 
-	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0X00);	// PULL DOWN Slave Slect PIN
-	for(i=0; i <= bytesNumber; ++i){
-		SSIDataPut(SSI3_BASE, data[i]);
+    GPIOPinWrite(deviceHandle.csPort,deviceHandle.csPin, 0X00); // PULL DOWN Slave Slect PIN
+//	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0X00);	// PULL DOWN Slave Slect PIN
+	for(i=0; i < bytesNumber; ++i){
+		SSIDataPut(deviceHandle.ssiBase, data[i]);
 	}
-	while(SSIBusy(SSI3_BASE));
-	GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0XFF);	// PULL UP Slave Slect PIN
+	while(SSIBusy(deviceHandle.ssiBase));
+//    GPIOPinWrite(GPIO_PORTD_BASE,GPIO_PIN_1, 0XFF); // PULL UP Slave Slect PIN
+	GPIOPinWrite(deviceHandle.csPort,deviceHandle.csPin, 0XFF);	// PULL UP Slave Slect PIN
 
-	while(SSIDataGetNonBlocking(SSI3_BASE, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
+	while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive)); // Clear FIFO After a Write Operation
 
 	return i-1;
 }

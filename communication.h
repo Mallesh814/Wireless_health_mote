@@ -48,6 +48,14 @@
 #include "driverlib/ssi.h"
 #include "configs.h"
 
+
+typedef struct
+{
+    uint32_t ssiBase;
+    uint32_t csPort;
+    uint32_t csPin;
+} ssi_deviceHandle;
+
 /******************************************************************************/
 /* Functions Prototypes                                                       */
 /******************************************************************************/
@@ -55,44 +63,23 @@
 /*! Initializes the I2C communication peripheral. */
 unsigned char I2C_Init(unsigned long clockFreq);
 
-/*! Writes data to a slave device.
-unsigned char I2C_Write(unsigned char slaveAddress,
-                        unsigned char* dataBuffer,
-                        unsigned char bytesNumber,
-                        unsigned char stopBit);
-*/
-/*! Reads data from a slave device.
-unsigned char I2C_Read(unsigned char slaveAddress,
-                       unsigned char* dataBuffer,
-                       unsigned char bytesNumber,
-                       unsigned char stopBit);
-*/
-/*! Initializes the SPI communication peripheral. */
-unsigned char SPI_Init(unsigned char lsbFirst,
-                       unsigned long clockFreq,
-                       unsigned char clockPol,
-                       unsigned char clockEdg);
-
 /*! Reads data from SPI. */
-unsigned char SPI_Read(uint32_t slaveDeviceId,
-                       unsigned char* data,
-                       unsigned char bytesNumber);
+void SPI_Read(ssi_deviceHandle deviceHandle,
+              unsigned char* data,
+              unsigned char bytesNumber);
 
-void SPI_Read_mod(uint32_t slaveDeviceId,
-                       unsigned char* data,
-                       unsigned char bytesNumber);
 
 /*! Writes data to SPI. */
-unsigned char SPI_Write(uint32_t slaveDeviceId,
+unsigned char SPI_Write(ssi_deviceHandle deviceHandle,
                         unsigned char* data,
                         unsigned char bytesNumber);
 
-/*! Writes data to I2C. */
+/*! Writes data to I2C slave device.. */
 unsigned char I2C_Write(uint32_t i2cBase,
                         unsigned char* data,
                         unsigned char bytesNumber);
 
-/*! Writes data to I2C. */
+/*! Reads data from I2C slave device. */
 unsigned char I2C_Read(uint32_t i2cBase,
                         unsigned char* data,
                         unsigned char bytesNumber);

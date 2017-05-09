@@ -11,12 +11,7 @@
 #include "driverlib/sysctl.h"
 
 #include "configs.h"
-
-//Configuration
-#define M25P_SSI_BASE SSI0_BASE
-#define M25P_FSS_GPIO GPIO_PORTA_BASE
-#define M25P_FSS_PIN GPIO_PIN_3
-#define M25P_FSS_PERIPH SYSCTL_PERIPH_GPIOA
+#include "communication.h"
 
 //Instructions
 #define M25P_WRITE_ENABLE                    0x06
@@ -33,7 +28,17 @@
 #define M25P_DEEP_POWER_DOWN                 0xb9
 #define M25P_RELEASE_DEEP_POWER_DOWN         0xab
 
-void InitFLASH(void);
+
+//Configuration
+#define M25P_SSI_BASE SSI0_BASE
+#define M25P_FSS_GPIO GPIO_PORTA_BASE
+#define M25P_FSS_PIN GPIO_PIN_3
+#define M25P_FSS_PERIPH SYSCTL_PERIPH_GPIOA
+
+ssi_deviceHandle flashM25pHandle;
+
+
+uint32_t FLASHM25P_Init(uint32_t ui32Base, uint32_t ui32BitRate);
 uint32_t M25P_ReadID();
 uint32_t M25P_readStatus();
 bool M25P_isBusy();

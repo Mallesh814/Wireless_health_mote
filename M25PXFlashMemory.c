@@ -9,46 +9,49 @@
 //
 //*****************************************************************************
 
-void InitFLASH(void)
+uint32_t FLASHM25P_Init(uint32_t ui32Base, uint32_t ui32BitRate)
 {
-	SysCtlPeripheralEnable(M25P_FSS_PERIPH);
-	GPIOPinTypeGPIOOutput(M25P_FSS_GPIO, M25P_FSS_PIN);
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);			// Pull Up FSS PIN of 23LCV1024
-    InitSPI(M25P_SSI_BASE, SSI_FRF_MOTO_MODE_0,SSI_MODE_MASTER, 1000000, 8, false);
+    InitSPI(ui32Base, SSI_FRF_MOTO_MODE_0,SSI_MODE_MASTER, ui32BitRate, 8, false);
+
+    flashM25pHandle.ssiBase = ui32Base;
+    flashM25pHandle.csPort = GPIO_PORTA_BASE;
+    flashM25pHandle.csPin = GPIO_PIN_3;
+
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    GPIOPinTypeGPIOOutput(flashM25pHandle.csPort, flashM25pHandle.csPin);
+    GPIOPinWrite(flashM25pHandle.csPort, flashM25pHandle.csPin, 0XFF);           // Pull Up FSS PIN of 23LCV1024
+
+    return ui32Base;
 }
 
 
 uint32_t M25P_ReadID()
 {
-   uint32_t ui32Receive, ui32ReadIDFlash;
+    uint8_t buffer[4];
+    uint32_t ui32ReadIDFlash;
 
-//   HWREG(M25P_FSS_GPIO + (GPIO_O_DATA + (M25P_FSS_PIN << 2))) = 0x00;
+    buffer[0] = M25P_READ_IDENTIFICATION;
+    buffer[1] = 0;
+    buffer[2] = 0;
+    buffer[3] = 0;
 
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
+    SPI_Read(flashM25pHandle, buffer, 4);
 
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
-
-	SSIDataPut(M25P_SSI_BASE, M25P_READ_IDENTIFICATION);
-	SSIDataPut(M25P_SSI_BASE, 0x00);
-	SSIDataPut(M25P_SSI_BASE, 0x00);
-	SSIDataPut(M25P_SSI_BASE, 0x00);
-
-	while(SSIBusy(M25P_SSI_BASE));
-
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
-
-	SSIDataGet(M25P_SSI_BASE, &ui32Receive);
-	SSIDataGet(M25P_SSI_BASE, &ui32Receive);
-	ui32ReadIDFlash = ui32Receive;
-	SSIDataGet(M25P_SSI_BASE, &ui32Receive);
-	ui32ReadIDFlash  = (ui32ReadIDFlash << 8) | ui32Receive;
-	SSIDataGet(M25P_SSI_BASE, &ui32Receive);
-	ui32ReadIDFlash  = (ui32ReadIDFlash << 8) | ui32Receive;
+    ui32ReadIDFlash  = (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
 
 	return ui32ReadIDFlash;
 }
 
 uint32_t M25P_readStatus() {
+    /*
+    uint8_t buffer[2];
+
+    buffer[0] = M25P_READ_STATUS_REGISTER;
+    buffer[1] = 0;
+
+    SPI_Read(flashM25pHandle, buffer, 2);
+
+    */
 	   uint32_t ui32Status;
 
 	//   HWREG(M25P_FSS_GPIO + (GPIO_O_DATA + (M25P_FSS_PIN << 2))) = 0x00;

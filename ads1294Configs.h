@@ -7,6 +7,7 @@
 
 #ifndef ADS1294CONFIGS_H_
 #define ADS1294CONFIGS_H_
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc/tm4c123gh6pm.h"
@@ -25,5 +26,7 @@
 
 uint32_t ADS1294_Init(uint32_t , uint32_t );
 void TimerConfig(uint32_t );
+
+ssi_deviceHandle ads1294Handle;
 
 #endif /* ADS1294CONFIGS_H_ */
