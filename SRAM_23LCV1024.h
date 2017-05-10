@@ -17,7 +17,7 @@
 #include "inc/hw_gpio.h"
 #include "driverlib/sysctl.h"
 
-#include "configs.h"
+#include "peripherals.h"
 #include "communication.h"
 
 //Instruction set
@@ -44,7 +44,6 @@
 #define LCV_FSS_PIN GPIO_PIN_6
 */
 
-ssi_deviceHandle sram23LcvHandle;
 uint32_t ram_address;
 
 uint32_t SRAM23LCV_Init(uint32_t ui32Base, uint32_t ui32BitRate);

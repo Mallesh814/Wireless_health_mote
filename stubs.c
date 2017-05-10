@@ -301,7 +301,7 @@ void ble_rsp_gap_set_mode(const struct ble_msg_gap_set_mode_rsp_t *msg)
 		transfer("Mode Set Successful\n\r", UART0_BASE);
 	}
 	else{
-		char num[10]="\0";
+	    uint8_t num[10]="\0";
 		transfer("Error in Setting Mode Code:", UART0_BASE);
         dec_ascii(num, msg->result);
         transfer(num, UART0_BASE);

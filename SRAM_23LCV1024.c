@@ -7,7 +7,7 @@
 
 #include "SRAM_23LCV1024.h"
 
-
+/*
 uint32_t SRAM23LCV_Init(uint32_t ui32Base, uint32_t ui32BitRate)
 {
     InitSPI(ui32Base, SSI_FRF_MOTO_MODE_0,SSI_MODE_MASTER, ui32BitRate, 8, false);
@@ -22,7 +22,7 @@ uint32_t SRAM23LCV_Init(uint32_t ui32Base, uint32_t ui32BitRate)
 
     return ui32Base;
 }
-
+*/
 void SRAMSetMode(uint8_t mode)
 {
     uint8_t buffer[2];
@@ -78,22 +78,20 @@ void SRAMWriteByte(uint8_t data, uint32_t address)
 
 void SRAMWriteData(uint8_t *buffer, uint8_t buffer_size, uint32_t address)
 {
-	uint8_t i;
+    ssi_packetHandle packetHandle;
+    uint8_t instBuffer[4];
 
-	GPIOPinWrite(sram23LcvHandle.csPort,sram23LcvHandle.csPin, 0X00);			// Pull Down FSS PIN of 23LCV1024
+    instBuffer[0] = SRAM_INS_WRITE;
+    instBuffer[1] = (address>>16) & 0xFF;
+    instBuffer[2] = (address>>8) & 0xFF;
+    instBuffer[3] = (address) & 0xFF;
 
-	SSIDataPut(sram23LcvHandle.ssiBase, SRAM_INS_WRITE);
-    SSIDataPut(sram23LcvHandle.ssiBase, (address>>16) & 0xFF);
-    SSIDataPut(sram23LcvHandle.ssiBase, (address>>8) & 0xFF);
-    SSIDataPut(sram23LcvHandle.ssiBase, (address) & 0xFF);
+    packetHandle.instBuffer = instBuffer;
+    packetHandle.instLen = 4;
+    packetHandle.dataBuffer = buffer;
+    packetHandle.dataLen = buffer_size;
 
-	for(i=0; i < buffer_size; ++i)
-	{
-		SSIDataPut(sram23LcvHandle.ssiBase, *(buffer+i));
-	}
-
-	while(SSIBusy(sram23LcvHandle.ssiBase));
-	GPIOPinWrite(sram23LcvHandle.csPort, sram23LcvHandle.csPin, 0XFF);			// Pull Down FSS PIN of 23LCV1024
+    SPI_Write_Packet(sram23LcvHandle, packetHandle);
 }
 
 /*
@@ -117,31 +115,22 @@ void SRAMWriteDataPage(const uint8_t *buffer, uint8_t buffer_size, uint32_t addr
 
 void SRAMReadData(uint8_t *buffer, uint8_t buffer_size, uint32_t address)
 {
-	uint8_t i;
-	uint32_t pui32Dummy;
 
-	while(SSIDataGetNonBlocking(sram23LcvHandle.ssiBase, &pui32Dummy)); // Clear FIFO Before Initiation a read Operation
+    ssi_packetHandle packetHandle;
+    uint8_t instBuffer[4];
 
-	GPIOPinWrite(sram23LcvHandle.csPort, sram23LcvHandle.csPin, 0X00);			// Pull Down FSS PIN of 23LCV1024
+    instBuffer[0] = SRAM_INS_READ;
+    instBuffer[1] = (address>>16) & 0xFF;
+    instBuffer[2] = (address>>8) & 0xFF;
+    instBuffer[3] = (address) & 0xFF;
 
-	SSIDataPut(sram23LcvHandle.ssiBase, SRAM_INS_READ);
-    SSIDataPut(sram23LcvHandle.ssiBase, (address>>16) & 0xFF);
-    SSIDataPut(sram23LcvHandle.ssiBase, (address>>8) & 0xFF);
-    SSIDataPut(sram23LcvHandle.ssiBase, (address) & 0xFF);
+    packetHandle.instBuffer = instBuffer;
+    packetHandle.instLen = 4;
+    packetHandle.dataBuffer = buffer;
+    packetHandle.dataLen = buffer_size;
 
-	for (i = 4; i ; i--)							// Discard Junk Data From FIFO
-		SSIDataGet(sram23LcvHandle.ssiBase, &pui32Dummy);
+    SPI_Read_Packet(sram23LcvHandle, packetHandle);
 
-	for(i = 0; i < buffer_size; i++){
-        SSIDataPut(sram23LcvHandle.ssiBase, buffer[i]);
-        SSIDataGet(sram23LcvHandle.ssiBase, &pui32Dummy);
-        buffer[i] = 0x00FF & pui32Dummy;
-	}
-
-	while(SSIBusy(sram23LcvHandle.ssiBase));
-
-	GPIOPinWrite(sram23LcvHandle.csPort, sram23LcvHandle.csPin, 0XFF);			// Pull Down FSS PIN of 23LCV1024
-    while(SSIDataGetNonBlocking(sram23LcvHandle.ssiBase, &pui32Dummy)); // Clear FIFO Before Initiation a read Operation
 }
 
 /*

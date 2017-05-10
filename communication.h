@@ -43,18 +43,7 @@
 /******************************************************************************/
 /* Include Files                                                              */
 /******************************************************************************/
-#include <stdint.h>
-#include <stdbool.h>
-#include "driverlib/ssi.h"
-#include "configs.h"
-
-
-typedef struct
-{
-    uint32_t ssiBase;
-    uint32_t csPort;
-    uint32_t csPin;
-} ssi_deviceHandle;
+#include "peripherals.h"
 
 /******************************************************************************/
 /* Functions Prototypes                                                       */
@@ -73,6 +62,12 @@ void SPI_Read(ssi_deviceHandle deviceHandle,
 unsigned char SPI_Write(ssi_deviceHandle deviceHandle,
                         unsigned char* data,
                         unsigned char bytesNumber);
+
+uint32_t SPI_Write_Packet(ssi_deviceHandle deviceHandle,
+                          ssi_packetHandle packetHandle);
+
+uint32_t SPI_Read_Packet(ssi_deviceHandle deviceHandle,
+                          ssi_packetHandle packetHandle);
 
 /*! Writes data to I2C slave device.. */
 unsigned char I2C_Write(uint32_t i2cBase,

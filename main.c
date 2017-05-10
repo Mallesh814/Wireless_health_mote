@@ -1,52 +1,14 @@
-//*****************************************************************************
-//
-// blinky.c - Simple example to blink the on-board LED.
-//
-// Copyright (c) 2012-2014 Texas Instruments Incorporated. All rights reserved.
-// Software License Agreement
-//
-// Texas Instruments (TI) is supplying this software for use solely and
-// exclusively on TI's microcontroller products. The software is owned by
-// TI and/or its suppliers, and is protected under applicable copyright
-// laws. You may not combine this software with "viral" open-source
-// software in order to form a larger program.
-//
-// THIS SOFTWARE IS PROVIDED "AS IS" AND WITH ALL FAULTS.
-// NO WARRANTIES, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, BUT
-// NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE. TI SHALL NOT, UNDER ANY
-// CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
-// DAMAGES, FOR ANY REASON WHATSOEVER.
-//
-// This is part of revision 2.1.0.12573 of the EK-TM4C123GXL Firmware Package.
-//
-//*****************************************************************************
-#include <stdint.h>
-#include <stdbool.h>
-#include "inc/tm4c123gh6pm.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/gpio.h"
-#include "inc/hw_memmap.h"
-#include "driverlib/timer.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/ssi.h"
 
-#include "configs.h"
+#include "arm_math.h"
+#include "peripherals.h"
+
 #include "parser.h"
 #include "M25PXFlashMemory.h"
 #include "SRAM_23LCV1024.h"
-#include "ADS129xInfo.h"
-#include "communication.h"
 #include "ads1294Configs.h"
-#include "ble113.h"
-
-
-
-//*****************************************************************************
-//
-// Blink the on-board LED.
-//
-//*****************************************************************************
+#include "ADS129xInfo.h"
+#include "dac7573.h"
+#include "communication.h"
 
 void isr_debugConsole(void);
 void isr_bleConsole();
@@ -55,12 +17,9 @@ void Timer0BIntHandler(void);
 
 uint8_t t0 = 0, t1 = 0, call_parser = 0, uart_char = 0, ble_data = 0, console_event = 0;
 uint32_t status;
-uint32_t debugConsole, dacHandle, adcHandle, decimal;
 uint8_t timer_int = 0, timer_event = 0;
 uint32_t toggle = 0, conversions = 0;
 uint8_t tim0 = 0, tim1 = 0, mux = 0;
-
-extern uint32_t bleConsole;
 
 
 void TimerConfig2(uint32_t freq, uint32_t width){
@@ -102,16 +61,17 @@ void TimerConfig2(uint32_t freq, uint32_t width){
 }
 
 
+
 int main(void) {
 
     bglib_output = output;
     uint8_t dat[8] = {0,0,0,0,0,0,0,0};
 
     uint32_t deci = 0, ble_active = 0;
-	char ascii[6]="\0";
-	char num[10]="\0";
+    uint8_t ascii[6]="\0";
+	uint8_t num[10]="\0";
 	uint8_t tx_buf[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	uint8_t rx_buf[] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','0','\0'};
+	uint8_t rx_buf[] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
 	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 	uint32_t i;
@@ -157,62 +117,20 @@ int main(void) {
 
     SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
 
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-	GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_1 | GPIO_PIN_0);
-	GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_1 | GPIO_PIN_0, 0X02);	// Toggle LED0 everytime a key is pressed
-
-	GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_3);
-	GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_3, 0X00);	// Toggle LED0 everytime a key is pressed
-
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-	GPIOPinTypeGPIOOutput(GPIO_PORTE_BASE, GPIO_PIN_5);
-	GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0X00);	// Toggle LED0 everytime a key is pressed
-
-	//	UART Configuration
-    //
-    // Set up the serial console to use for displaying messages.  This is
-    // just for this example program and is not needed for Timer operation.
-    //
-    debugConsole = InitConsole(UART0_BASE,921600);
-	UARTFIFOEnable(debugConsole);
-	UARTFIFOLevelSet(debugConsole,UART_FIFO_TX7_8,UART_FIFO_RX1_8);
-	UARTIntRegister(debugConsole,isr_debugConsole);
-	UARTIntEnable(debugConsole,UART_INT_RX | UART_INT_RT);
-	status = UARTIntStatus(debugConsole,true);
-	UARTIntClear(debugConsole,status);
-	transfer("\033[2J\033[H", debugConsole);		// Clear Screen
-	transfer("Console Initialized\n\r", debugConsole);
-
-	GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_3, 0XFF);	// Toggle LED0 everytime a key is pressed
-
-	bleConsole = InitConsole(UART6_BASE,115200);
-	UARTFIFOEnable(bleConsole);
-	UARTFIFOLevelSet(bleConsole,UART_FIFO_TX7_8,UART_FIFO_RX6_8);
-	UARTIntRegister(bleConsole,isr_bleConsole);
-	UARTIntEnable(bleConsole,UART_INT_RX | UART_INT_RT );
-	status = UARTIntStatus(bleConsole,true);
-	UARTIntClear(bleConsole, status);
-
-	ble_cmd_system_reset(0);
+	configurePeripherals();
 
 	dec_ascii(num, SysCtlClockGet());
-	transfer("Clock Freq:", debugConsole);
-	transfer(num, debugConsole);
+    transfer("Clock Freq:", debugConsole);
+    transfer(num, debugConsole);
     transfer("\n\r", debugConsole);
 
     /*
-	adcHandle = ADS1294_Init(SSI3_BASE,2000000);
-	while(adcHandle == 0)
-		adcHandle = ADS1294_Init(SSI3_BASE,2000000);
-    transfer("SPI Initialized", debugConsole);
-
-
-    dacHandle = InitI2C(I2C1_BASE,1);
-	transfer("I2C Initialized", debugConsole);
+    adcHandle = ADS1294_Init(ads1294Handle);
+    while(adcHandle == 0)
+        adcHandle = ADS1294_Init(ads1294Handle);
+    transfer("ADC Initialized", debugConsole);
     */
 
-    FLASHM25P_Init(SSI0_BASE, 10000000);
-    transfer("FLASH Initialized\n\r", debugConsole);
 
     deci = M25P_ReadID();
     dec_ascii(ascii, deci);
@@ -226,8 +144,6 @@ int main(void) {
     transfer(ascii, debugConsole);
     transfer("\n\r", debugConsole);
 
-//    InitSRAM();
-    SRAM23LCV_Init(SSI0_BASE, 1000000);
     transfer("SRAM Initialized\n\r", debugConsole);
     deci = SRAMReadMode();
     dec_ascii(ascii, deci);
@@ -255,6 +171,7 @@ int main(void) {
 
     sramData = 0;
     sramAddrPtr = 0;
+
     /* while(1);
 
 	dac_val = 0x7FF;
@@ -372,10 +289,10 @@ int main(void) {
 			SRAMWriteByte(sramData, sramAddrPtr);
 		    sramAddrPtr += 1;
 
-		    if (sramAddrPtr == 0x20){
+		    if (sramAddrPtr == 0x10){
 		        sramData = 1;
 		        sramAddrPtr = 0;
-		        while(sramAddrPtr != 0x20){
+		        while(sramAddrPtr != 0x10){
 	                temp = SRAMReadByte(sramAddrPtr);
                     transfer("\n\r Expected : ", debugConsole);
                     dec_ascii(num, sramData);
@@ -559,20 +476,20 @@ Timer0AIntHandler(void)
     else mux = 0;
     switch(mux){
     case 0:
-    	GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_1 | GPIO_PIN_0, 0X00);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0XFF);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
     	break;
     case 1:
-    	GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_1 | GPIO_PIN_0, 0X03);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0XFF);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selIr);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
     	break;
     case 2:
-    	GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_1 | GPIO_PIN_0, 0X02);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0XFF);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
     	break;
     case 3:
-    	GPIOPinWrite(GPIO_PORTB_BASE,GPIO_PIN_1 | GPIO_PIN_0, 0X01);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0XFF);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
     	break;
     }
 //    GPIOPinWrite(GPIO_PORTF_BASE,GPIO_PIN_1, tim0);

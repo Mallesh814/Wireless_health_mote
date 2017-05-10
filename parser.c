@@ -65,7 +65,7 @@ uint32_t str_len(char* str)
 
 //****** Function that sends the received STRING to UART interface
 
-void transfer(char* data, uint32_t uart_base){
+void transfer(uint8_t* data, uint32_t uart_base){
 		while (*data){
 			UARTCharPut(uart_base, *data);
 			data++;
@@ -73,7 +73,7 @@ void transfer(char* data, uint32_t uart_base){
 
 }
 
-void dec_ascii(char*pasc, uint32_t num){
+void dec_ascii(uint8_t*pasc, uint32_t num){
 	uint32_t j;
 	j=num;
 	do{
@@ -119,7 +119,7 @@ uint32_t ascii_hex_dec(char* asc,uint32_t* num)										// blink determines the
 	return 1;
 }
 
-uint32_t int_hex_ascii(char* hex_str, uint8_t num)
+uint32_t int_hex_ascii(uint8_t* hex_str, uint8_t num)
 {
 	uint32_t i=0;
 	char str[]="00";

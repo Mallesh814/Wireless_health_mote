@@ -8,7 +8,7 @@
 // This function sets up SSI External Flash ID Read
 //
 //*****************************************************************************
-
+/*
 uint32_t FLASHM25P_Init(uint32_t ui32Base, uint32_t ui32BitRate)
 {
     InitSPI(ui32Base, SSI_FRF_MOTO_MODE_0,SSI_MODE_MASTER, ui32BitRate, 8, false);
@@ -23,7 +23,7 @@ uint32_t FLASHM25P_Init(uint32_t ui32Base, uint32_t ui32BitRate)
 
     return ui32Base;
 }
-
+*/
 
 uint32_t M25P_ReadID()
 {
@@ -43,7 +43,6 @@ uint32_t M25P_ReadID()
 }
 
 uint32_t M25P_readStatus() {
-    /*
     uint8_t buffer[2];
 
     buffer[0] = M25P_READ_STATUS_REGISTER;
@@ -51,24 +50,7 @@ uint32_t M25P_readStatus() {
 
     SPI_Read(flashM25pHandle, buffer, 2);
 
-    */
-	   uint32_t ui32Status;
-
-	//   HWREG(M25P_FSS_GPIO + (GPIO_O_DATA + (M25P_FSS_PIN << 2))) = 0x00;
-		while(SSIDataGetNonBlocking(M25P_SSI_BASE, &ui32Status)); // Clear FIFO Before Initiation a read Operation
-
-		GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
-
-		SSIDataPut(M25P_SSI_BASE, M25P_READ_STATUS_REGISTER);
-		SSIDataPut(M25P_SSI_BASE, 0x00);
-		while(SSIBusy(M25P_SSI_BASE));
-
-		GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
-
-		SSIDataGet(M25P_SSI_BASE, &ui32Status);
-		SSIDataGet(M25P_SSI_BASE, &ui32Status);
-
-		return ui32Status;
+    return buffer[1];
 }
 
 bool M25P_isBusy() {
@@ -81,87 +63,70 @@ bool M25P_isWritable() {
 
 uint8_t M25P_readByte(uint32_t address) {
 
-	uint8_t data;
-	uint32_t pui32Dummy;
 
-	while(M25P_isBusy()) ;
+    uint8_t buffer[5];
 
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &address)); // Clear Rx FIFO After Operation
+    buffer[0] = M25P_READ_DATA_BYTES;
+    buffer[1] = (address>>16) & 0xFF;
+    buffer[2] = (address>>8) & 0xFF;
+    buffer[3] = (address) & 0xFF;
+    buffer[4] = 0;
 
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0x00);	// PULL DOWN Slave Slect PIN
-	SSIDataPut(M25P_SSI_BASE, M25P_READ_DATA_BYTES);
-    M25P_sendAddress(address);
-	SSIDataPut(M25P_SSI_BASE, SSI_DUMMY_BYTE);
+    while(M25P_isBusy()) ;
 
-	for (data = 4; data ; data--)							// Discard Junk Data From FIFO
-		SSIDataGet(M25P_SSI_BASE, &pui32Dummy);
+    SPI_Read(flashM25pHandle, buffer, 5);
 
-	SSIDataGet(M25P_SSI_BASE, &pui32Dummy);
+    return buffer[4];
 
-    while(SSIBusy(M25P_SSI_BASE));
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0xFF);	// PULL UP Slave Slect PIN
-
-	data = 0xff & pui32Dummy;
-
-    return data;
 }
 
-void M25P_programByte(uint32_t addr,uint8_t b) {
+void M25P_programByte(uint32_t address,uint8_t data) {
+
+    uint8_t buffer[5];
+
+    buffer[0] = M25P_PAGE_PROGRAM;
+    buffer[1] = (address>>16) & 0xFF;
+    buffer[2] = (address>>8) & 0xFF;
+    buffer[3] = (address) & 0xFF;
+    buffer[4] = data;
+
     while(M25P_isBusy());
+    M25P_enableWrite();
 
-	M25P_enableWrite();
-
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
-
-	SSIDataPut(M25P_SSI_BASE, M25P_PAGE_PROGRAM);
-    M25P_sendAddress(addr);
-    SSIDataPut(M25P_SSI_BASE, b);
-
-    while(SSIBusy(M25P_SSI_BASE));
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
-
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &addr)); // Clear Rx FIFO After Operation
+    SPI_Write(flashM25pHandle, buffer, 5);
 }
 
 
 void M25P_readBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
-	uint8_t i;
-	uint32_t pui32Dummy;
 
-	while(M25P_isBusy());
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &pui32Dummy)); // Clear FIFO Before Initiation a read Operation
+    ssi_packetHandle packetHandle;
+    uint8_t instBuffer[4];
 
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);			// Pull Down FSS PIN of 23LCV1024
+    while(M25P_isBusy());
 
-	SSIDataPut(M25P_SSI_BASE, M25P_READ_DATA_BYTES);
-	M25P_sendAddress(address);
+    instBuffer[0] = M25P_READ_DATA_BYTES;
+    instBuffer[1] = (address>>16) & 0xFF;
+    instBuffer[2] = (address>>8) & 0xFF;
+    instBuffer[3] = (address) & 0xFF;
 
-	for (i = 4; i ; i--)							// Discard Junk Data From FIFO
-		SSIDataGet(M25P_SSI_BASE, &pui32Dummy);
+    packetHandle.instBuffer = instBuffer;
+    packetHandle.instLen = 4;
+    packetHandle.dataBuffer = buffer;
+    packetHandle.dataLen = buffer_size;
 
-	while(buffer_size)
-	{
+    SPI_Read_Packet(flashM25pHandle, packetHandle);
 
-		for(i=((buffer_size > 8) ?(8):(buffer_size)); i ; i--){		// Dealing with Chunks of 8 Bytes(FIFO LENGTH)
-			SSIDataPutNonBlocking(M25P_SSI_BASE, SSI_DUMMY_BYTE);
-		}
-
-		while(SSIDataGetNonBlocking(M25P_SSI_BASE, buffer) && buffer_size){
-			++buffer;
-			--buffer_size;
-		}
-	}
-
-//	while(SSIBusy(LCV_SSI_BASE));
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);			// Pull Down FSS PIN of 23LCV1024
 }
+
 
 void M25P_programBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
 	int i=0;
     while (i < buffer_size) {
         int writeSize = 0x100 - (address & 0xff);
         if (writeSize > buffer_size - i) writeSize = buffer_size - i;
-        M25P_programPage(buffer,writeSize,address);
+
+        M25P_programPage(buffer, writeSize, address);
+
         address &= 0xffffff00; //start at the beginning of the page
         address += 0x00000100; //increment page by one
         buffer += writeSize;
@@ -171,101 +136,76 @@ void M25P_programBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
 
 
 void M25P_programPage(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
-	uint32_t ui32Dummy;
-	int i=0;
 
-	while(M25P_isBusy()) ;
+    ssi_packetHandle packetHandle;
+    uint8_t instBuffer[4];
 
+    while(M25P_isBusy()) ;
     M25P_enableWrite(); //write is disabled automatically afterwards
 
-    GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
+    instBuffer[0] = M25P_PAGE_PROGRAM;
+    instBuffer[1] = (address>>16) & 0xFF;
+    instBuffer[2] = (address>>8) & 0xFF;
+    instBuffer[3] = (address) & 0xFF;
 
-    SSIDataPut(M25P_SSI_BASE, M25P_PAGE_PROGRAM);
-    M25P_sendAddress(address);
+    packetHandle.instBuffer = instBuffer;
+    packetHandle.instLen = 4;
+    packetHandle.dataBuffer = buffer;
+    packetHandle.dataLen = buffer_size;
 
-    for (i=0; i < buffer_size; i++) {
-    	SSIDataPut(M25P_SSI_BASE, buffer[i]);
-    }
-
-    while(SSIBusy(M25P_SSI_BASE));
-    GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
-
-    while(SSIDataGetNonBlocking(M25P_SSI_BASE, &ui32Dummy)); // Clear Rx FIFO After Operation
+    SPI_Write_Packet(flashM25pHandle, packetHandle);
 
 }
 
 
 void M25P_enableWrite() {
-	uint32_t ui32Dummy;
+    uint8_t buffer[1];
+    buffer[0] = M25P_WRITE_ENABLE;
 
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
-
-	SSIDataPut(SSI0_BASE, M25P_WRITE_ENABLE);
-
-    while(SSIBusy(M25P_SSI_BASE));
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
-
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &ui32Dummy)); // Clear Rx FIFO After Operation
+    SPI_Write(flashM25pHandle, buffer, 1);
 
 }
 
 void M25P_disableWrite() {
-	uint32_t ui32Dummy;
+    uint8_t buffer[1];
+    buffer[0] = M25P_WRITE_DISABLE;
 
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
-
-    SSIDataPut(M25P_SSI_BASE, M25P_WRITE_DISABLE);
-
-    while(SSIBusy(M25P_SSI_BASE));
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
-
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &ui32Dummy)); // Clear Rx FIFO After Operation
-}
-
-void M25P_sendAddress(uint32_t addr) {
-	SSIDataPut(M25P_SSI_BASE, (addr & 0xff0000) >> 16);	//addr 0
-	SSIDataPut(M25P_SSI_BASE, (addr & 0xff00) >> 8);	//addr 1
-	SSIDataPut(M25P_SSI_BASE, (addr & 0xff));			//addr 2
+    SPI_Write(flashM25pHandle, buffer, 1);
 }
 
 
-void M25P_eraseSector(uint32_t addr) {
 
-	uint32_t ui32Dummy;
-    addr = addr & 0xFF0000; //target Sector
+void M25P_eraseSector(uint32_t address) {
 
-    while(M25P_isBusy()) ;
 
-    M25P_enableWrite(); //write is disabled automatically afterwards
+    uint8_t buffer[4];
 
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
+    address = address & 0xFF0000; //target Sector
 
-	SSIDataPut(M25P_SSI_BASE, M25P_SECTOR_ERASE);
-    M25P_sendAddress(addr);
+    buffer[0] = M25P_SECTOR_ERASE;
+    buffer[1] = (address>>16) & 0xFF;
+    buffer[2] = (address>>8) & 0xFF;
+    buffer[3] = (address) & 0xFF;
 
-    while(SSIBusy(M25P_SSI_BASE));
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
+    while(M25P_isBusy());
+    M25P_enableWrite();
 
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &ui32Dummy)); // Clear Rx FIFO After Operation
+    SPI_Write(flashM25pHandle, buffer, 4);
 
 }
 
 void M25P_bulkErase() {
 
-	uint32_t ui32Dummy;
-    while(M25P_isBusy()) ;
 
+    uint8_t buffer[1];
+
+    buffer[0] = M25P_BULK_ERASE;
+
+    while(M25P_isBusy()) ;
     M25P_enableWrite(); //write is disabled automatically afterwards
 
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0X00);	// PULL DOWN Slave Slect PIN
-
-	SSIDataPut(M25P_SSI_BASE, M25P_BULK_ERASE);
-
-    while(SSIBusy(M25P_SSI_BASE));
-	GPIOPinWrite(M25P_FSS_GPIO,M25P_FSS_PIN, 0XFF);	// PULL UP Slave Slect PIN
+    SPI_Write(flashM25pHandle, buffer, 1);
 
     while(M25P_isBusy()) ; //M25P_BULK_ERASE can take awhile, lets just wait until it completes
-
-	while(SSIDataGetNonBlocking(M25P_SSI_BASE, &ui32Dummy)); // Clear Rx FIFO After Operation
 
 }

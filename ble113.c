@@ -27,7 +27,7 @@ uint16 thermometer_handle_start = 0,
 void change_state(states new_state)
 {
 #ifdef DEBUG
-	const char *state_names[state_last] = {
+    uint8_t *state_names[state_last] = {
 		"standby",
 		"advertising",
 	    "disconnected",
@@ -61,7 +61,7 @@ int cmp_bdaddr(bd_addr first, bd_addr second)
 void print_bdaddr(bd_addr bdaddr)
 {
 	uint32_t i = 0;
-	char num[3]="\0";
+	uint8_t num[3]="\0";
 
 	for(i = 0; i < 6; i++){
 		int_hex_ascii(num, bdaddr.addr[5 - i]);
@@ -81,7 +81,7 @@ void enable_indications(uint8 connection_handle, uint16 client_configuration_han
 
 void ble_rsp_system_get_info(const struct ble_msg_system_get_info_rsp_t *msg)
 {
-	char num[10]="\0";
+    uint8_t num[10]="\0";
 	transfer("Build: ", debugConsole);
 
     dec_ascii(num, msg->build);
@@ -111,9 +111,9 @@ void ble_evt_gap_scan_response(const struct ble_msg_gap_scan_response_evt_t *msg
     if (found_devices_count >= MAX_DEVICES) change_state(state_finish);
 
     int i;
-	char num[10]="\0";
-	char payload[64];
-    char *name = &payload[0];
+    uint8_t num[10]="\0";
+    uint8_t payload[64];
+	uint8_t *name = &payload[0];
 
     // Check if this device already found
     for (i = 0; i < found_devices_count; i++) {
@@ -159,7 +159,7 @@ void ble_evt_connection_status(const struct ble_msg_connection_status_evt_t *msg
 {
     // New connection
 #ifdef DEBUG
-	char num[10]="\0";
+    uint8_t num[10]="\0";
     transfer("###\tconnection_status: { \n\r", debugConsole);
     transfer(" connection: ", debugConsole);
 
@@ -277,7 +277,7 @@ void ble_evt_attclient_find_information_found(const struct ble_msg_attclient_fin
 
 void ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *msg) {
     #ifdef DEBUG
-		char num[10] = "\0";
+        uint8_t num[10] = "\0";
 		uint8_t i = 0;
 
 		transfer("###\tattributes_value: { \n\r", debugConsole);
@@ -323,7 +323,7 @@ void ble_evt_attributes_value(const struct ble_msg_attributes_value_evt_t *msg) 
 }
 void ble_evt_attclient_attribute_value(const struct ble_msg_attclient_attribute_value_evt_t *msg)
 {
-    char num[10]="\0";
+    uint8_t num[10]="\0";
 	if (msg->value.len < 5) {
         transfer("Not enough fields in Temperature Measurement value", debugConsole);
         change_state(state_finish);
@@ -358,7 +358,7 @@ void ble_evt_attclient_attribute_value(const struct ble_msg_attclient_attribute_
 void ble_evt_connection_disconnected(const struct ble_msg_connection_disconnected_evt_t *msg)
 {
 	#ifdef DEBUG
-		char num[10]="\0";
+        uint8_t num[10]="\0";
 		transfer("###\tconnection_disconnect: { \n\r", debugConsole);
 
 		transfer(" connection: ", debugConsole);
@@ -400,7 +400,7 @@ void output(uint8 len1, uint8* data1, uint16 len2, uint8* data2)
 
 void print_raw_packet(struct ble_header *hdr, unsigned char *data)
 {
-	char num[3]="\0";
+    uint8_t num[3]="\0";
 
     transfer("Incoming packet: ", debugConsole);
 
@@ -427,7 +427,7 @@ int read_message(int timeout_ms)
     unsigned char data[256]; // enough for BLE
     struct ble_header hdr;
     int r;
-    char num[10]="\0";
+    uint8_t num[10]="\0";
 
     r = uart_rx(sizeof(hdr), (unsigned char *)&hdr, UART_TIMEOUT);
     if (!r) {

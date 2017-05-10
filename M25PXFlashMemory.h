@@ -10,7 +10,7 @@
 #include "inc/hw_gpio.h"
 #include "driverlib/sysctl.h"
 
-#include "configs.h"
+#include "peripherals.h"
 #include "communication.h"
 
 //Instructions
@@ -34,9 +34,6 @@
 #define M25P_FSS_GPIO GPIO_PORTA_BASE
 #define M25P_FSS_PIN GPIO_PIN_3
 #define M25P_FSS_PERIPH SYSCTL_PERIPH_GPIOA
-
-ssi_deviceHandle flashM25pHandle;
-
 
 uint32_t FLASHM25P_Init(uint32_t ui32Base, uint32_t ui32BitRate);
 uint32_t M25P_ReadID();

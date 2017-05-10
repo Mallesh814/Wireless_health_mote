@@ -20,10 +20,10 @@
     uint32_t str_len(char*);
 
     uint32_t *mem_cpy(void* dest_memory_address, const void* src_memory_address, uint32_t number_of_bytes);
-    void transfer(char*, uint32_t);
-	void dec_ascii(char*, uint32_t);
+    void transfer(uint8_t*, uint32_t);
+	void dec_ascii(uint8_t*, uint32_t);
 	uint32_t ascii_dec(char* ,uint32_t*);
 	uint32_t ascii_hex_dec(char*,uint32_t*);
-	uint32_t int_hex_ascii(char* , uint8_t);
+	uint32_t int_hex_ascii(uint8_t* , uint8_t);
 
 #endif /* PARSER_H_ */
