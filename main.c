@@ -1,5 +1,5 @@
 
-#include "arm_math.h"
+//#include "arm_math.h"
 #include "peripherals.h"
 
 #include "parser.h"
@@ -74,7 +74,7 @@ int main(void) {
 	uint8_t rx_buf[] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
 	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-	uint32_t i;
+	uint32_t i, adcHandle;
 	uint32_t averageDC = 6710886;
 	uint32_t correctionRed = 6710886;
 	uint32_t correctionIR = 6710886;
@@ -115,91 +115,74 @@ int main(void) {
 
     };
 
-    SysCtlClockSet(SYSCTL_SYSDIV_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
+    SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
 
 	configurePeripherals();
 
-	dec_ascii(num, SysCtlClockGet());
-    transfer("Clock Freq:", debugConsole);
-    transfer(num, debugConsole);
-    transfer("\n\r", debugConsole);
+	#ifdef DEBUG
+        dec_ascii(num, SysCtlClockGet());
+        transfer("Clock Freq:", debugConsole);
+        transfer(num, debugConsole);
+        transfer("\n\r", debugConsole);
 
-    /*
-    adcHandle = ADS1294_Init(ads1294Handle);
-    while(adcHandle == 0)
-        adcHandle = ADS1294_Init(ads1294Handle);
-    transfer("ADC Initialized", debugConsole);
-    */
+        deci = M25P_ReadID();
+        dec_ascii(ascii, deci);
+        transfer("FLASH Status : ", debugConsole);
+        transfer(ascii, debugConsole);
+        transfer("\n\r", debugConsole);
+
+        deci = M25P_readStatus();
+        dec_ascii(ascii, deci);
+        transfer("FLASH Status : ", debugConsole);
+        transfer(ascii, debugConsole);
+        transfer("\n\r", debugConsole);
+
+        transfer("SRAM Initialized\n\r", debugConsole);
+        deci = SRAMReadMode();
+        dec_ascii(ascii, deci);
+        transfer("SRAM Mode Status : ", debugConsole);
+        transfer(ascii, debugConsole);
+        transfer("\n\r", debugConsole);
 
 
-    deci = M25P_ReadID();
-    dec_ascii(ascii, deci);
-    transfer("FLASH Status : ", debugConsole);
-    transfer(ascii, debugConsole);
-    transfer("\n\r", debugConsole);
+        SRAMWriteByte(99, sramAddrPtr);
 
-    deci = M25P_readStatus();
-    dec_ascii(ascii, deci);
-    transfer("FLASH Status : ", debugConsole);
-    transfer(ascii, debugConsole);
-    transfer("\n\r", debugConsole);
+        deci = SRAMReadByte(sramAddrPtr);
+        dec_ascii(ascii, deci);
+        transfer("SRAM Read Byte : ", debugConsole);
+        transfer(ascii, debugConsole);
+        transfer("\n\r", debugConsole);
 
-    transfer("SRAM Initialized\n\r", debugConsole);
-    deci = SRAMReadMode();
-    dec_ascii(ascii, deci);
-    transfer("SRAM Mode Status : ", debugConsole);
-    transfer(ascii, debugConsole);
-    transfer("\n\r", debugConsole);
-
-    ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
-	change_state(state_advertising);
-
-	SRAMWriteByte(99, sramAddrPtr);
-
-    deci = SRAMReadByte(sramAddrPtr);
-    dec_ascii(ascii, deci);
-    transfer("SRAM Read Byte : ", debugConsole);
-    transfer(ascii, debugConsole);
-    transfer("\n\r", debugConsole);
-
-    sramAddrPtr++;
-    SRAMWriteData(tx_buf, 36, sramAddrPtr);
-    SRAMReadData(buffer, 36, sramAddrPtr);
-    transfer("SRAM Read Data : ", debugConsole);
-    transfer(buffer, debugConsole);
-    transfer("\n\r", debugConsole);
+        sramAddrPtr++;
+        SRAMWriteData(tx_buf, 36, sramAddrPtr);
+        SRAMReadData(buffer, 36, sramAddrPtr);
+        transfer("SRAM Read Data : ", debugConsole);
+        transfer(buffer, debugConsole);
+        transfer("\n\r", debugConsole);
+    #endif
 
     sramData = 0;
     sramAddrPtr = 0;
 
-    /* while(1);
+    ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
+    change_state(state_advertising);
+    adcHandle = ADS1294_Init(ads1294Handle);
+    while(adcHandle == 0){
+        adcHandle = ADS1294_Init(ads1294Handle);
+    }
+
+    transfer("ADC Initialized", debugConsole);
+
 
 	dac_val = 0x7FF;
-	decimal = dac_val << 4;
-	buffer[0] = 0x4D;
-	buffer[1] = 0xD6;
-	buffer[2] = decimal >> 8;
-	buffer[3] = decimal & 0x00FF;
-	I2C_Write(dacHandle, buffer, 4);
+    dac7573_Send(driver_dac7573Handle, dac_val, selRed);
+    dac7573_Send(driver_dac7573Handle, dac_val, selIr);
+    dac7573_Send(driver_dac7573Handle, dac_val, sel810);
+    dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
-	buffer[0] = 0x4D;
-	buffer[1] = 0xD4;
-	buffer[2] = decimal >> 8;
-	buffer[3] = decimal & 0x00FF;
-	I2C_Write(dacHandle, buffer, 4);
-
-	buffer[0] = 0x4D;
-	buffer[1] = 0xD2;
-	buffer[2] = decimal >> 8;
-	buffer[3] = decimal & 0x00FF;
-	I2C_Write(dacHandle, buffer, 4);
-
-	buffer[0] = 0x4D;
-	buffer[1] = 0xD0;
-	buffer[2] = decimal >> 8;
-	buffer[3] = decimal & 0x00FF;
-	I2C_Write(dacHandle, buffer, 4);
-    */
+    // GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);    // Toggle LED0 everytime a key is pressed
+    // GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0XFF); // Toggle LED0 everytime a key is pressed
+    while(1);
 
     TimerConfig2(2000, 5000);
     transfer("Timer Started\n\r", debugConsole);
@@ -318,99 +301,120 @@ int main(void) {
 		    }
 
 
-			/*
 			buffer[0] = RDATA;
-			SPI_Read(adcHandle, ads1294_cs, buffer,15);
+			SPI_Read(ads1294Handle, buffer,15);
 			GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0X00);	// Toggle LED0 everytime a key is pressed
 
 			switch(mux){
 			case 0:
 				dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+                acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+
+                correctionRed = (uint32_t)((int32_t)correctionRed + (((int32_t)dcChannel - (int32_t)correctionRed) >> 9));
+
+                dac_val = ((correctionIR >> 13) * 5);
+                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_A);
+
 				transfer("D10:", debugConsole);
 				dec_ascii(num, dcChannel);
 				transfer(num, debugConsole);
 
-				correctionRed = (uint32_t)((int32_t)correctionRed + (((int32_t)dcChannel - (int32_t)correctionRed) >> 9));
-				dac_val = ((correctionIR >> 13) * 5);
-
-				acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
 				transfer(" D20:", debugConsole);
 				dec_ascii(num, acChannel);
 				transfer(num, debugConsole);
+
+				/*
 				decimal = dac_val << 4;
 				buffer[0] = 0x4F;
 				buffer[1] = 0xD0;
 				buffer[2] = decimal >> 8;
 				buffer[3] = decimal & 0x00FF;
 				I2C_Write(dacHandle, buffer, 4);
+                */
+
 				break;
 			case 1:
 				dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+                acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+                correctionIR = (uint32_t)((int32_t)correctionIR + (((int32_t)dcChannel - (int32_t)correctionIR) >> 9));
+
+                dac_val = ((correction810 >> 13) * 5);
+                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_A);
+
 				transfer("D11:", debugConsole);
 				dec_ascii(num, dcChannel);
 				transfer(num, debugConsole);
 
-				correctionIR = (uint32_t)((int32_t)correctionIR + (((int32_t)dcChannel - (int32_t)correctionIR) >> 9));
-				dac_val = ((correction810 >> 13) * 5);
-
-				acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
 				transfer(" D21:", debugConsole);
 				dec_ascii(num, acChannel);
 				transfer(num, debugConsole);
+
+                /*
 				decimal = dac_val << 4;
 				buffer[0] = 0x4F;
 				buffer[1] = 0xD0;
 				buffer[2] = decimal >> 8;
 				buffer[3] = decimal & 0x00FF;
 				I2C_Write(dacHandle, buffer, 4);
+				*/
+
 				break;
 			case 2:
 				dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+                acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+                correction810 = (uint32_t)((int32_t)correction810 + (((int32_t)dcChannel - (int32_t)correction810 ) >> 9));
+
+                dac_val = ((correction1300 >> 13) * 5);
+                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_B);
+
 				transfer("D12:", debugConsole);
 				dec_ascii(num, dcChannel);
 				transfer(num, debugConsole);
 
-				correction810 = (uint32_t)((int32_t)correction810 + (((int32_t)dcChannel - (int32_t)correction810 ) >> 9));
-				dac_val = ((correction1300 >> 13) * 5);
 
-				acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
 				transfer(" D22:", debugConsole);
 				dec_ascii(num, acChannel);
 				transfer(num, debugConsole);
 
+                /*
 				decimal = dac_val << 4;
 				buffer[0] = 0x4F;
 				buffer[1] = 0xD2;
 				buffer[2] = decimal >> 8;
 				buffer[3] = decimal & 0x00FF;
 				I2C_Write(dacHandle, buffer, 4);
+				*/
 				break;
 			case 3:
 				dcChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
+                acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
+                correction1300 = (uint32_t)((int32_t)correction1300 + (((int32_t)dcChannel - (int32_t)correction1300 ) >> 9));
+
+                dac_val = ((correctionRed >> 13) * 5);
+                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_A);
+
 				transfer("D3:", debugConsole);
 				dec_ascii(num, dcChannel);
 				transfer(num, debugConsole);
 
-				correction1300 = (uint32_t)((int32_t)correction1300 + (((int32_t)dcChannel - (int32_t)correction1300 ) >> 9));
-				dac_val = ((correctionRed >> 13) * 5);
 
-				acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
 				transfer(" D4:", debugConsole);
 				dec_ascii(num, acChannel);
 				transfer(num, debugConsole);
 
+                /*
 				decimal = dac_val << 4;
 				buffer[0] = 0x4F;
 				buffer[1] = 0xD0;
 				buffer[2] = decimal >> 8;
 				buffer[3] = decimal & 0x00FF;
 				I2C_Write(dacHandle, buffer, 4);
+				*/
 
 				break;
 			default : mux = 0;
 				break;
 			}
-			*/
 
 			transfer("\n\r", debugConsole);
 

@@ -9,20 +9,17 @@ extern uint32_t debugConsole;
 extern void Timer0AIntHandler(void);
 
 uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
-
     uint8_t buffer[6] = {0,0,0,0,0,0};
 	uint32_t status, i = 0;
 	uint8_t num[10] = "\0";
 
-	i = 65536 * 50;
-	while(i--);
+	SysCtlDelay(SysCtlClockGet()/3);
 
 	buffer[0] = RESET;
 	status = SPI_Write(deviceHandle, buffer, 1);
 	transfer("ADS1294 Reset Command Sent \n\r", debugConsole);
 
-	i = 65536 * 50;
-	while(i--);
+    SysCtlDelay(SysCtlClockGet()/3);
 
 	buffer[0] = SDATAC;
 	status = SPI_Write(deviceHandle, buffer, 1);

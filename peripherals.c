@@ -55,7 +55,7 @@ void configurePeripherals(){
 
     ble_cmd_system_reset(0);
 
-    adcSsiBase = InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_1, SSI_MODE_MASTER, 2000000, 8, 0);
+    adcSsiBase = InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_1, SSI_MODE_MASTER, 4000000, 8, 0);
 
     ads1294Handle.ssiBase = adcSsiBase;
     ads1294Handle.csPort = GPIO_PORTD_BASE;
@@ -65,7 +65,7 @@ void configurePeripherals(){
     GPIOPinTypeGPIOOutput(ads1294Handle.csPort, ads1294Handle.csPin);
     GPIOPinWrite(ads1294Handle.csPort, ads1294Handle.csPin, 0XFF);
 
-    memSsiBase = InitSPI(SSI0_BASE, SSI_FRF_MOTO_MODE_0,SSI_MODE_MASTER, 10000000, 8, false);
+    memSsiBase = InitSPI(SSI0_BASE, SSI_FRF_MOTO_MODE_0,SSI_MODE_MASTER, 8000000, 8, false);
 
     flashM25pHandle.ssiBase = memSsiBase;
     flashM25pHandle.csPort = GPIO_PORTA_BASE;
@@ -87,10 +87,12 @@ void configurePeripherals(){
     transfer("I2C Initialized", debugConsole);
 
     driver_dac7573Handle.i2cBase = extI2CBase;
-    driver_dac7573Handle.i2cAddr = 0x00;
+    driver_dac7573Handle.i2cAddr = 0x0D;
 
     sensor_dac7573Handle.i2cBase = extI2CBase;
-    sensor_dac7573Handle.i2cAddr = 0x00;
+    sensor_dac7573Handle.i2cAddr = 0x0F;
+    sensChannel_A = selRed;
+    sensChannel_B = selIr;
 
     tempSensorHandle.i2cBase = extI2CBase;
     tempSensorHandle.i2cAddr = 0x00;
@@ -102,7 +104,7 @@ void configurePeripherals(){
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
     GPIOPinTypeGPIOOutput(deMuxLed.selBase, deMuxLed.selPins);
-    GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, 0X02);    // Toggle LED0 everytime a key is pressed
+    GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     GPIOPinTypeGPIOOutput(deMuxLed.inBase, GPIO_PIN_5);

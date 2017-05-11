@@ -82,6 +82,9 @@ typedef enum {
     sel1300 = 0x01
 } ledSelect;
 
+ledSelect sensChannel_A;
+ledSelect sensChannel_B;
+
 uint32_t debugConsole, bleConsole, decimal;
 
 
