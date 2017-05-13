@@ -70,7 +70,7 @@ int main(void) {
     uint32_t deci = 0, ble_active = 0;
     uint8_t ascii[6]="\0";
 	uint8_t num[10]="\0";
-	uint8_t tx_buf[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	uint8_t tx_buf[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYY";
 	uint8_t rx_buf[] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
 	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -138,6 +138,7 @@ int main(void) {
         transfer("\n\r", debugConsole);
 
         transfer("SRAM Initialized\n\r", debugConsole);
+        SRAMSetMode(SRAM_MODE_SEQUENTIAL);
         deci = SRAMReadMode();
         dec_ascii(ascii, deci);
         transfer("SRAM Mode Status : ", debugConsole);
@@ -180,9 +181,8 @@ int main(void) {
     dac7573_Send(driver_dac7573Handle, dac_val, sel810);
     dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
-    // GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);    // Toggle LED0 everytime a key is pressed
-    // GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0XFF); // Toggle LED0 everytime a key is pressed
-    while(1);
+    GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);    // Toggle LED0 everytime a key is pressed
+    GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0XFF); // Toggle LED0 everytime a key is pressed
 
     TimerConfig2(2000, 5000);
     transfer("Timer Started\n\r", debugConsole);
@@ -268,6 +268,7 @@ int main(void) {
     	if(timer_int){
 			timer_int = 0;
 
+			/*
 			sramData++;
 			SRAMWriteByte(sramData, sramAddrPtr);
 		    sramAddrPtr += 1;
@@ -299,11 +300,11 @@ int main(void) {
 		        }
 		        while(1);
 		    }
-
+            */
 
 			buffer[0] = RDATA;
 			SPI_Read(ads1294Handle, buffer,15);
-			GPIOPinWrite(GPIO_PORTE_BASE,GPIO_PIN_5, 0X00);	// Toggle LED0 everytime a key is pressed
+			GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0X00);	// LED Control Signal OFF
 
 			switch(mux){
 			case 0:

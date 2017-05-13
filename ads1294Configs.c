@@ -32,11 +32,14 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	SPI_Read(deviceHandle, buffer, 3);
 	status = buffer[2];
 
-	if((status == ID_ADS1294) || (status == 128)){
-		transfer("ADS1294 Initialized \n\r", debugConsole);
-	    int_hex_ascii(num, status);
-	    transfer(num, debugConsole);
-	    transfer("\n\r", debugConsole);
+	if(status == ID_ADS1294){
+	    ;
+		/*
+        transfer("ADS1294 Initialized \n\r", debugConsole);
+        int_hex_ascii(num, status);
+        transfer(num, debugConsole);
+        transfer("\n\r", debugConsole);
+		 */
 	}
 	else {
 		transfer("ADS1294 Initialization Failed \n\r", debugConsole);

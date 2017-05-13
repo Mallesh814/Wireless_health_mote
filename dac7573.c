@@ -25,10 +25,10 @@ void dac7573_Send(i2c_deviceHandle deviceHandle, uint32_t data, ledSelect channe
         buffer[1] = ((deviceHandle.i2cAddr << 4) & CTRL_ADD_MASK) | LOAD_MODE_1 | SEL_B;
         break;
     case sel810:
-        buffer[1] = ((deviceHandle.i2cAddr << 4) & CTRL_ADD_MASK) | LOAD_MODE_1 | SEL_C;
+        buffer[1] = ((deviceHandle.i2cAddr << 4) & CTRL_ADD_MASK) | LOAD_MODE_1 | SEL_D;
         break;
     case sel1300:
-        buffer[1] = ((deviceHandle.i2cAddr << 4) & CTRL_ADD_MASK) | LOAD_MODE_1 | SEL_D;
+        buffer[1] = ((deviceHandle.i2cAddr << 4) & CTRL_ADD_MASK) | LOAD_MODE_1 | SEL_C;
         break;
     }
 

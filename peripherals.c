@@ -55,7 +55,7 @@ void configurePeripherals(){
 
     ble_cmd_system_reset(0);
 
-    adcSsiBase = InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_1, SSI_MODE_MASTER, 4000000, 8, 0);
+    adcSsiBase = InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_1, SSI_MODE_MASTER, 1000000, 8, 0);
 
     ads1294Handle.ssiBase = adcSsiBase;
     ads1294Handle.csPort = GPIO_PORTD_BASE;
@@ -107,7 +107,8 @@ void configurePeripherals(){
     GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-    GPIOPinTypeGPIOOutput(deMuxLed.inBase, GPIO_PIN_5);
+    GPIOPinTypeGPIOOutput(deMuxLed.inBase, deMuxLed.inPin);
+    GPIOPadConfigSet(deMuxLed.inBase, deMuxLed.inPin, GPIO_STRENGTH_4MA,GPIO_PIN_TYPE_STD);
     GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0X00); // Toggle LED0 everytime a key is pressed
 
 }
