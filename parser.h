@@ -25,5 +25,6 @@
 	uint32_t ascii_dec(char* ,uint32_t*);
 	uint32_t ascii_hex_dec(char*,uint32_t*);
 	uint32_t int_hex_ascii(uint8_t* , uint8_t);
+	uint32_t int_hex_ascii_big(char* , uint32_t );
 
 #endif /* PARSER_H_ */

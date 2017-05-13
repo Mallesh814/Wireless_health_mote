@@ -115,7 +115,7 @@ int main(void) {
 
     };
 
-    SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
+    //SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
 
 	configurePeripherals();
 
@@ -172,7 +172,7 @@ int main(void) {
         adcHandle = ADS1294_Init(ads1294Handle);
     }
 
-    transfer("ADC Initialized", debugConsole);
+    transfer("ADC Initialized\n\r", debugConsole);
 
 
 	dac_val = 0x7FF;
@@ -181,8 +181,53 @@ int main(void) {
     dac7573_Send(driver_dac7573Handle, dac_val, sel810);
     dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
-    GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);    // Toggle LED0 everytime a key is pressed
+    GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
     GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0XFF); // Toggle LED0 everytime a key is pressed
+
+    /*
+    for(i = 0; i < 6; i++){
+
+        SysCtlDelay(SysCtlClockGet()/3);
+        buffer[0] = RDATA;
+        SPI_Read(ads1294Handle, buffer,16);
+
+        SysCtlDelay(SysCtlClockGet()/3);
+
+        ADS1294_readBytes((uint8_t*)&adcData, 15);
+
+        dcChannel = (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3]);
+        transfer("STAT:", debugConsole);
+        int_hex_ascii_big(num, dcChannel);
+        transfer(num, debugConsole);
+        transfer("\n\r", debugConsole);
+
+        dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+        transfer("CH1:", debugConsole);
+        int_hex_ascii_big(num, dcChannel);
+        transfer(num, debugConsole);
+        transfer("\n\r", debugConsole);
+
+        dcChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+        transfer("CH2:", debugConsole);
+        int_hex_ascii_big(num, dcChannel);
+        transfer(num, debugConsole);
+        transfer("\n\r", debugConsole);
+
+        dcChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
+        transfer("CH3:", debugConsole);
+        int_hex_ascii_big(num, dcChannel);
+        transfer(num, debugConsole);
+        transfer("\n\r", debugConsole);
+
+        dcChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
+        transfer("CH4:", debugConsole);
+        int_hex_ascii_big(num, dcChannel);
+        transfer(num, debugConsole);
+        transfer("\n\r\n\r", debugConsole);
+    }
+
+    while (1);
+    */
 
     TimerConfig2(2000, 5000);
     transfer("Timer Started\n\r", debugConsole);
@@ -303,7 +348,7 @@ int main(void) {
             */
 
 			buffer[0] = RDATA;
-			SPI_Read(ads1294Handle, buffer,15);
+			SPI_Read(ads1294Handle, buffer,16);
 			GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0X00);	// LED Control Signal OFF
 
 			switch(mux){

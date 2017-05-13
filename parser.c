@@ -139,9 +139,8 @@ uint32_t int_hex_ascii(uint8_t* hex_str, uint8_t num)
 	str_ncpy(hex_str,str,3);
 	return 1;
 }
-/*
 
-uint32_t int_hex_ascii(char* hex_str, uint32_t num)
+uint32_t int_hex_ascii_big(char* hex_str, uint32_t num)
 {
 	uint32_t i=0;
 	char str[11]="0x00000000";
@@ -161,4 +160,3 @@ uint32_t int_hex_ascii(char* hex_str, uint32_t num)
 	str_cpy(hex_str,str);
 	return 1;
 }
-*/

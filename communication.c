@@ -103,16 +103,16 @@ uint32_t SPI_Read_Packet(ssi_deviceHandle deviceHandle,
     while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive)); // Clear FIFO Before Initiation a read Operation
     GPIOPinWrite(deviceHandle.csPort,deviceHandle.csPin, 0X00); // PULL DOWN Slave Slect PIN
 
-    for(i = 0; i < packetHandle.instLen; ++i){
+    for(i = 0; i < packetHandle.instLen; i++){
         SSIDataPut(deviceHandle.ssiBase, packetHandle.instBuffer[i]);
         SSIDataGet(deviceHandle.ssiBase, &ui32Receive);
-        packetHandle.instBuffer[i] = 0x00FF & ui32Receive;
+        packetHandle.instBuffer[i] = (uint8_t) (0x00FF & ui32Receive);
     }
 
-    for(i = 0; i < packetHandle.dataLen; ++i){
+    for(i = 0; i < packetHandle.dataLen; i++){
         SSIDataPut(deviceHandle.ssiBase, packetHandle.dataBuffer[i]);
         SSIDataGet(deviceHandle.ssiBase, &ui32Receive);
-        packetHandle.dataBuffer[i] = 0x00FF & ui32Receive;
+        packetHandle.dataBuffer[i] = (uint8_t) (0x00FF & ui32Receive);
     }
     while(SSIBusy(deviceHandle.ssiBase));
 

@@ -63,6 +63,16 @@ typedef struct
     uint32_t inPin;
 } deMux;
 
+PACKSTRUCT(struct ads1294DataStruct
+{
+    uint8_t status[3];
+    uint8_t ch1[3];
+    uint8_t ch2[3];
+    uint8_t ch3[3];
+    uint8_t ch4[3];
+});
+
+
 ssi_deviceHandle sram23LcvHandle;
 ssi_deviceHandle flashM25pHandle;
 ssi_deviceHandle ads1294Handle;
@@ -74,6 +84,7 @@ i2c_deviceHandle tempSensorHandle;
 ble_deviceHandle ble113Handle;
 
 deMux deMuxLed;
+struct ads1294DataStruct adcData;
 
 typedef enum {
     selRed  = 0x00,

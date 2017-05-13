@@ -121,10 +121,10 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 
 	buffer[0] = WREG | CH1SET;
 	buffer[1] = 0x03;
-	buffer[2] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
-	buffer[3] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
-	buffer[4] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
-	buffer[5] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
+	buffer[2] = CHnSET_const | TEST_SIGNAL | GAIN_X1;
+	buffer[3] = CHnSET_const | TEST_SIGNAL | GAIN_X1;
+	buffer[4] = CHnSET_const | TEST_SIGNAL | GAIN_X1;
+	buffer[5] = CHnSET_const | TEST_SIGNAL | GAIN_X1;
 	status = SPI_Write(deviceHandle, buffer, 6);
 	transfer("ADS1294 Channel Commands Sent \n\r", debugConsole);
 
@@ -154,6 +154,27 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 */
 	return deviceHandle.ssiBase;
 }
+
+
+void ADS1294_readBytes(uint8_t *buffer, uint8_t buffer_size) {
+
+    ssi_packetHandle packetHandle;
+    uint8_t instBuffer[1];
+
+    instBuffer[0] = RDATA;
+
+    packetHandle.instBuffer = instBuffer;
+    packetHandle.instLen = 1;
+    packetHandle.dataBuffer = buffer;
+    packetHandle.dataLen = buffer_size;
+
+    SPI_Read_Packet(ads1294Handle, packetHandle);
+
+}
+
+
+
+
 
 void TimerConfig(uint32_t freq){
 
