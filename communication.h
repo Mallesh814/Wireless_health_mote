@@ -57,6 +57,9 @@ void SPI_Read(ssi_deviceHandle deviceHandle,
               unsigned char* data,
               unsigned char bytesNumber);
 
+void SPI_Read_Dummy(ssi_deviceHandle deviceHandle,
+              unsigned char* data,
+              unsigned char bytesNumber);
 
 /*! Writes data to SPI. */
 unsigned char SPI_Write(ssi_deviceHandle deviceHandle,
@@ -67,6 +70,9 @@ uint32_t SPI_Write_Packet(ssi_deviceHandle deviceHandle,
                           ssi_packetHandle packetHandle);
 
 uint32_t SPI_Read_Packet(ssi_deviceHandle deviceHandle,
+                          ssi_packetHandle packetHandle);
+
+uint32_t SPI_Read_Packet_Dummy(ssi_deviceHandle deviceHandle,
                           ssi_packetHandle packetHandle);
 
 /*! Writes data to I2C slave device.. */

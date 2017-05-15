@@ -98,6 +98,16 @@ ledSelect sensChannel_B;
 uint32_t debugConsole, bleConsole, decimal;
 
 
+typedef enum {
+    initialize,
+    wait_for_ble,
+    siganl_acquisition,
+    filtering,
+    data_transfer
+} deviceStateMachine;
+
+deviceStateMachine deviceState;
+
 void configurePeripherals();
 
 uint32_t InitSPI(uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , bool );
