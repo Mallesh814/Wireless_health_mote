@@ -261,40 +261,47 @@ int main(void) {
 
     	if(timer_int){
 			timer_int = 0;
-
-            buffer[0] = RDATA;
+			/*
+			buffer[0] = RDATA;
             SPI_Read(ads1294Handle, buffer,16);
+            */
 
-            //ADS1294_readBytes((uint8_t*)&adcData, 15);
+			ADS1294_readBytes((uint8_t*)&adcData, 15);
             GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
 
+            acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
 	        //acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-	        acChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+	        //acChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
             transfer("D10:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
+            acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
             //acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
-            acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+            //acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
             transfer(" D11:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
+            acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
             //acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
-            acChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
+            //acChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
             transfer(" D12:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
+            acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
             //acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
-            acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
+            //acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
             transfer(" D3:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
             transfer("\n\r", debugConsole);
 
-            for (i=1; i<16; i++)
-				buffer[i] = 0;
+            for (j=0; j<15; j++)
+            //for (j=1; j<16; j++)
+                adcDataPtr[j] = 0;
+                //buffer[j] = 0;
 		}
 
 	}
