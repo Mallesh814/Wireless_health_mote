@@ -229,7 +229,7 @@ int main(void) {
 
     //while (1);
 
-    TimerConfig2(500, 5000);
+    TimerConfig2(2000, 5000);
     transfer("Timer Started\n\r", debugConsole);
 
 	while (1) {
@@ -244,32 +244,30 @@ int main(void) {
     	if(timer_int){
 			timer_int = 0;
 
-	        ADS1294_readBytes((uint8_t*)&adcData, 15);
-	        /*
+	        //ADS1294_readBytes((uint8_t*)&adcData, 15);
 	        buffer[0] = RDATA;
 			SPI_Read(ads1294Handle, buffer,16);
-            */
 
-	        acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-	        //acChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+	        //acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+	        acChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
             transfer("D10:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
-            acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
-            //acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+            //acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
+            acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
             transfer(" D11:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
-            acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
-            //acChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
+            //acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+            acChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
             transfer(" D12:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
-            acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
-            //acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
+            //acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
+            acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
             transfer(" D3:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
