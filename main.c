@@ -279,8 +279,8 @@ int main(void) {
             transfer(num, debugConsole);
             transfer("\n\r", debugConsole);
 
-            //for (i=1; i<16; i++)
-				//buffer[i] = 0;
+            for (i=1; i<16; i++)
+				buffer[i] = 0;
 		}
 
 	}
