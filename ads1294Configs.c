@@ -173,38 +173,19 @@ void ADS1294_readBytes(uint8_t *buffer, uint8_t buffer_size) {
 }
 
 
-
-
-
 void TimerConfig(uint32_t freq){
-
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-
-    //
     // The Timer0 peripheral must be enabled for use.
-    //
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
-
-    //
     // Set the Timer0B load value to 0.625ms.
-    //
     TimerLoadSet(TIMER0_BASE, TIMER_A, SysCtlClockGet() / freq);
-
-    //
     // Configure the Timer0B interrupt for timer timeout.
-    //
     TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-
     TimerIntRegister(TIMER0_BASE, TIMER_A, Timer0AIntHandler);
-    //
     // Enable the Timer0B interrupt on the processor (NVIC).
-    //
     IntEnable(INT_TIMER0A);
-    //
     // Enable Timer0B.
-    //
     TimerEnable(TIMER0_BASE, TIMER_A );
-
 }
 
 

@@ -23,39 +23,26 @@ uint8_t tim0 = 0, tim1 = 0, mux = 0;
 
 
 void TimerConfig2(uint32_t freq, uint32_t width){
-    //
     // The Timer0 peripheral must be enabled for use.
-    //
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
 
-    //
     // The Timer0 peripheral must be enabled for use.
-    //
     TimerConfigure(TIMER0_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PERIODIC | TIMER_CFG_B_ONE_SHOT);
 
-    //
     // Set the Timer0B load value to 0.625ms.
-    //
     TimerLoadSet(TIMER0_BASE, TIMER_A, SysCtlClockGet() / freq);
     TimerLoadSet(TIMER0_BASE, TIMER_B, SysCtlClockGet() / width);	// 1/Pulse Width required = 6250 for 160us
 
-    //
     // Configure the Timer0B interrupt for timer timeout.
-    //
     TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
     TimerIntEnable(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
 
     TimerIntRegister(TIMER0_BASE, TIMER_A, Timer0AIntHandler);
     TimerIntRegister(TIMER0_BASE, TIMER_B, Timer0BIntHandler);
-    //
     // Enable the Timer0B interrupt on the processor (NVIC).
-    //
     IntEnable(INT_TIMER0A);
     IntEnable(INT_TIMER0B);
-
-    //
     // Enable Timer0B.
-    //
     TimerEnable(TIMER0_BASE, TIMER_A );
     TimerEnable(TIMER0_BASE, TIMER_B );
 }
@@ -75,11 +62,6 @@ int main(void) {
 	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 	uint32_t i, j, adcHandle;
-	uint32_t averageDC = 6710886;
-	uint32_t correctionRed = 6710886;
-	uint32_t correctionIR = 6710886;
-	uint32_t correction810 = 6710886;
-	uint32_t correction1300 = 6710886;
 	uint32_t dcChannel, acChannel;
 	uint32_t dac_val=0;
 
@@ -187,66 +169,6 @@ int main(void) {
     GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
     GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0XFF); // Toggle LED0 everytime a key is pressed
 
-    for(i = 0; i < 6; i++){
-
-        /*
-        SysCtlDelay(SysCtlClockGet()/3);
-        buffer[0] = RDATA;
-        SPI_Read(ads1294Handle, buffer,16);
-        */
-
-        SysCtlDelay(SysCtlClockGet()/3);
-
-        ADS1294_readBytes(adcDataPtr, 15);
-
-        dcChannel = (adcData.status[0] << 16) | (adcData.status[1] << 8) | (adcData.status[2]);
-        //dcChannel = (adcDataPtr[0] << 16) | (adcDataPtr[1] << 8) | (adcDataPtr[2]);
-        //dcChannel = (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3]);
-        transfer("STAT:", debugConsole);
-        int_hex_ascii_big(num, dcChannel);
-        transfer(num, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        dcChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-        //dcChannel = (adcDataPtr[3] << 16) | (adcDataPtr[4] << 8) | (adcDataPtr[5]);
-        //dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
-        transfer("CH1:", debugConsole);
-        int_hex_ascii_big(num, dcChannel);
-        transfer(num, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        dcChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
-        //dcChannel = (adcDataPtr[6] << 16) | (adcDataPtr[7] << 8) | (adcDataPtr[8]);
-        //dcChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
-        transfer("CH2:", debugConsole);
-        int_hex_ascii_big(num, dcChannel);
-        transfer(num, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        dcChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
-        //dcChannel = (adcDataPtr[9] << 16) | (adcDataPtr[10] << 8) | (adcDataPtr[11]);
-        //dcChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
-        transfer("CH3:", debugConsole);
-        int_hex_ascii_big(num, dcChannel);
-        transfer(num, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        dcChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
-        //dcChannel = (adcDataPtr[12] << 16) | (adcDataPtr[13] << 8) | (adcDataPtr[14]);
-        //dcChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
-        transfer("CH4:", debugConsole);
-        int_hex_ascii_big(num, dcChannel);
-        transfer(num, debugConsole);
-        transfer("\n\r\n\r", debugConsole);
-
-        for (j=0; j<15; j++)
-        //for (j=1; j<16; j++)
-            adcDataPtr[j] = 0;
-            //buffer[j] = 0;
-    }
-
-    //while (1);
-
     TimerConfig2(2000, 5000);
     transfer("Timer Started\n\r", debugConsole);
 
@@ -261,47 +183,33 @@ int main(void) {
 
     	if(timer_int){
 			timer_int = 0;
-			/*
-			buffer[0] = RDATA;
-            SPI_Read(ads1294Handle, buffer,16);
-            */
 
 			ADS1294_readBytes((uint8_t*)&adcData, 15);
             GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
 
             acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-	        //acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-	        //acChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
             transfer("D10:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
             acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
-            //acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
-            //acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
             transfer(" D11:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
             acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
-            //acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
-            //acChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
             transfer(" D12:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
             acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
-            //acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
-            //acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
             transfer(" D3:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
             transfer("\n\r", debugConsole);
 
             for (j=0; j<15; j++)
-            //for (j=1; j<16; j++)
                 adcDataPtr[j] = 0;
-                //buffer[j] = 0;
 		}
 
 	}
@@ -318,7 +226,6 @@ void isr_debugConsole(void)
 			uart_char = UARTCharGet(UART0_BASE);
 			UARTCharPut(UART0_BASE,uart_char);
 			console_event = 1;
-			//call_parser = 1;
 		}
 }
 
@@ -330,7 +237,6 @@ void isr_bleConsole()
 	if(UARTCharsAvail(bleConsole))
 		{
 			ble_data = 1;
-//			GPIOPinWrite(GPIO_PORTF_BASE,GPIO_PIN_3|GPIO_PIN_2|GPIO_PIN_1, uart_char3);	// Toggle LED0 everytime a key is pressed
 		}
 }
 
@@ -343,17 +249,13 @@ void isr_bleConsole()
 void
 Timer0AIntHandler(void)
 {
-    //
     // Clear the timer interrupt flag.
-    //
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 
-//	tim0 ^= 0xFF;
-//    tim1 = 0xFF;
-//    timer_int = 1;
 
     if(mux < 3) mux++;
     else mux = 0;
+
     switch(mux){
     case 0:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);	// Toggle LED0 everytime a key is pressed
@@ -372,25 +274,14 @@ Timer0AIntHandler(void)
     	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     }
-//    GPIOPinWrite(GPIO_PORTF_BASE,GPIO_PIN_1, tim0);
-//	GPIOPinWrite(GPIO_PORTF_BASE,GPIO_PIN_2, tim1);
     TimerEnable(TIMER0_BASE, TIMER_B );
 }
 
 void
 Timer0BIntHandler(void)
 {
-    //
     // Clear the timer interrupt flag.
-    //
     TimerIntClear(TIMER0_BASE, TIMER_TIMB_TIMEOUT);
-//    tim1 = 0x00;
     timer_int = 1;
-    //timer_event = 1;
-
-//	GPIOPinWrite(GPIO_PORTF_BASE,GPIO_PIN_2, tim1);
-
-//	TimerLoadSet(TIMER1_BASE, TIMER_A, SysCtlClockGet() / 500);
-
 }
 
