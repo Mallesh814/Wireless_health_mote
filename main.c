@@ -74,7 +74,7 @@ int main(void) {
 	uint8_t rx_buf[] = {'\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0'};
 	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-	uint32_t i, adcHandle;
+	uint32_t i, j, adcHandle;
 	uint32_t averageDC = 6710886;
 	uint32_t correctionRed = 6710886;
 	uint32_t correctionIR = 6710886;
@@ -117,7 +117,7 @@ int main(void) {
 
     };
 
-    //SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
+    SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
 
 	configurePeripherals();
 
@@ -194,7 +194,7 @@ int main(void) {
 
         SysCtlDelay(SysCtlClockGet()/3);
 
-        ADS1294_readBytes((uint8_t*)&adcData, 15);
+        //ADS1294_readBytes((uint8_t*)&adcData, 15);
 
         dcChannel = (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3]);
         transfer("STAT:", debugConsole);
@@ -225,6 +225,10 @@ int main(void) {
         int_hex_ascii_big(num, dcChannel);
         transfer(num, debugConsole);
         transfer("\n\r\n\r", debugConsole);
+
+        for (j=1; j<16; j++)
+            buffer[j] = 0;
+
     }
 
     //while (1);
@@ -244,9 +248,11 @@ int main(void) {
     	if(timer_int){
 			timer_int = 0;
 
-	        //ADS1294_readBytes((uint8_t*)&adcData, 15);
-	        buffer[0] = RDATA;
-			SPI_Read(ads1294Handle, buffer,16);
+            buffer[0] = RDATA;
+            SPI_Read(ads1294Handle, buffer,16);
+
+            //ADS1294_readBytes((uint8_t*)&adcData, 15);
+            GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
 
 	        //acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
 	        acChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
@@ -273,8 +279,8 @@ int main(void) {
             transfer(num, debugConsole);
             transfer("\n\r", debugConsole);
 
-            for (i=1; i<16; i++)
-				buffer[i] = 0;
+            //for (i=1; i<16; i++)
+				//buffer[i] = 0;
 		}
 
 	}
