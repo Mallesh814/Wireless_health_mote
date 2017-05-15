@@ -21,6 +21,20 @@
 
 #include "ble113.h"
 
+#define MAX_ADC_FAIL_COUNT 4
+// 1Mbit Ram => 131072 Bytes => 43690 Units of ADC Data(1 Unit = 3 Bytes) => 8738 Samples (Including Status and 4 Channels) => 4.3 Seconds
+// (1024*1024)/(8*3*5) = 8738
+
+// 1Mbit Ram => 131072 Bytes => 43690 Units of ADC Data(1 Unit = 3 Bytes) => 14563 Samples (Including Status and 2 Channels) => 7.2 Seconds
+// (1024*1024)/(8*3*3) = 14563
+
+// 1Mbit Ram => 131072 Bytes => 43690 Units of ADC Data(1 Unit = 3 Bytes) => 21845 Samples (Including 2 Channels) => 10.5 Seconds
+// (1024*1024)/(8*3*2) = 21845
+
+// 1Mbit Ram => 131072 Bytes => 43690 Units of ADC Data(1 Unit = 3 Bytes) => 43690 Samples (1 Channel Data Only) => 21 Seconds
+// (1024*1024)/(8*3*1) = 21845
+
+#define MAX_NO_OF_SAMPLES 8738
 
 typedef struct
 {
@@ -63,6 +77,7 @@ typedef struct
     uint32_t inPin;
 } deMux;
 
+
 PACKSTRUCT(struct ads1294DataStruct
 {
     uint8_t status[3];
@@ -101,12 +116,16 @@ uint32_t debugConsole, bleConsole, decimal;
 typedef enum {
     initialize,
     wait_for_ble,
+    configuring,
     siganl_acquisition,
     filtering,
-    data_transfer
+    data_transfer,
+    deviceState_last
 } deviceStateMachine;
 
 deviceStateMachine deviceState;
+
+void change_deviceState(deviceStateMachine);
 
 void configurePeripherals();
 

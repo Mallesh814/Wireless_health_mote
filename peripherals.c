@@ -7,6 +7,29 @@
 
 #include "peripherals.h"
 
+
+void change_deviceState(deviceStateMachine new_state)
+{
+#ifdef DEBUG
+    uint8_t *state_names[deviceState_last] = {
+        "initialize",
+        "wait_for_ble",
+        "configuring",
+        "siganl_acquisition",
+        "filtering",
+        "data_transfer"
+    };
+
+    transfer("DEBUG: Device State changed: ", debugConsole);
+    transfer(state_names[deviceState], debugConsole);
+    transfer("--> ", debugConsole);
+    transfer(state_names[new_state], debugConsole);
+    transfer("\n\r", debugConsole);
+#endif
+    deviceState = new_state;
+}
+
+
 void configurePeripherals(){
 
     extern void isr_debugConsole(void);
