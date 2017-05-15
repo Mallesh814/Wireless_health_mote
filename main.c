@@ -86,6 +86,7 @@ int main(void) {
 	uint32_t sramAddrPtr = 0, sramData = 0, temp = 0, mask = 0;
 
 	struct ads1294DataStruct adcData;
+	uint8_t *adcDataPtr = (uint8_t *)&adcData;
 
     uint8 adv_data[] = {
         0x02, // field length
@@ -188,47 +189,60 @@ int main(void) {
 
     for(i = 0; i < 6; i++){
 
+        /*
         SysCtlDelay(SysCtlClockGet()/3);
         buffer[0] = RDATA;
         SPI_Read(ads1294Handle, buffer,16);
+        */
 
         SysCtlDelay(SysCtlClockGet()/3);
 
-        //ADS1294_readBytes((uint8_t*)&adcData, 15);
+        ADS1294_readBytes(adcDataPtr, 15);
 
-        dcChannel = (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3]);
+        dcChannel = (adcData.status[0] << 16) | (adcData.status[1] << 8) | (adcData.status[2]);
+        //dcChannel = (adcDataPtr[0] << 16) | (adcDataPtr[1] << 8) | (adcDataPtr[2]);
+        //dcChannel = (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3]);
         transfer("STAT:", debugConsole);
         int_hex_ascii_big(num, dcChannel);
         transfer(num, debugConsole);
         transfer("\n\r", debugConsole);
 
-        dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+        dcChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+        //dcChannel = (adcDataPtr[3] << 16) | (adcDataPtr[4] << 8) | (adcDataPtr[5]);
+        //dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
         transfer("CH1:", debugConsole);
         int_hex_ascii_big(num, dcChannel);
         transfer(num, debugConsole);
         transfer("\n\r", debugConsole);
 
-        dcChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+        dcChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
+        //dcChannel = (adcDataPtr[6] << 16) | (adcDataPtr[7] << 8) | (adcDataPtr[8]);
+        //dcChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
         transfer("CH2:", debugConsole);
         int_hex_ascii_big(num, dcChannel);
         transfer(num, debugConsole);
         transfer("\n\r", debugConsole);
 
-        dcChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
+        dcChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+        //dcChannel = (adcDataPtr[9] << 16) | (adcDataPtr[10] << 8) | (adcDataPtr[11]);
+        //dcChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
         transfer("CH3:", debugConsole);
         int_hex_ascii_big(num, dcChannel);
         transfer(num, debugConsole);
         transfer("\n\r", debugConsole);
 
-        dcChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
+        dcChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
+        //dcChannel = (adcDataPtr[12] << 16) | (adcDataPtr[13] << 8) | (adcDataPtr[14]);
+        //dcChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
         transfer("CH4:", debugConsole);
         int_hex_ascii_big(num, dcChannel);
         transfer(num, debugConsole);
         transfer("\n\r\n\r", debugConsole);
 
-        for (j=1; j<16; j++)
-            buffer[j] = 0;
-
+        for (j=0; j<15; j++)
+        //for (j=1; j<16; j++)
+            adcDataPtr[j] = 0;
+            //buffer[j] = 0;
     }
 
     //while (1);
@@ -336,19 +350,19 @@ Timer0AIntHandler(void)
     switch(mux){
     case 0:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     case 1:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selIr);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     case 2:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     case 3:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     }
 //    GPIOPinWrite(GPIO_PORTF_BASE,GPIO_PIN_1, tim0);
