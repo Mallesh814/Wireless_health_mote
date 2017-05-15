@@ -104,7 +104,7 @@ int main(void) {
 
     };
 
-    SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
+    //SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
 
 	configurePeripherals();
 
@@ -132,6 +132,12 @@ int main(void) {
         dec_ascii(ascii, deci);
         transfer("SRAM Mode : ", debugConsole);
         transfer(ascii, debugConsole);
+        transfer("\n\r", debugConsole);
+
+        sramReadPtr = sramWritePtr;
+        SRAMReadData(buffer, 36, sramReadPtr);
+        transfer("SRAM Read Data : ", debugConsole);
+        transfer(buffer, debugConsole);
         transfer("\n\r", debugConsole);
 
         SRAMWriteByte(99, sramWritePtr);
@@ -197,6 +203,15 @@ int main(void) {
 
             sramWritePtr = 0;
             sramReadPtr = 0;
+
+            SRAMSetMode(SRAM_MODE_SEQUENTIAL);
+            transfer("SRAM Initialized\n\r", debugConsole);
+            deci = SRAMReadMode();
+            dec_ascii(ascii, deci);
+            transfer("SRAM Mode : ", debugConsole);
+            transfer(ascii, debugConsole);
+            transfer("\n\r", debugConsole);
+
             numberOfSamples = MAX_NO_OF_SAMPLES;
             change_deviceState(siganl_acquisition);
 
@@ -211,6 +226,38 @@ int main(void) {
 
                 ADS1294_readBytes(adcDataPtr, 15);
                 GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
+                numberOfSamples--;
+
+                SRAMWriteData(adcDataPtr, 15, sramWritePtr);
+                sramWritePtr += 15;
+
+                for (j = 0; j < 15; j++)
+                    adcDataPtr[j] = 0;
+            }
+
+            if(numberOfSamples == 0){
+                change_deviceState(data_transfer);
+            }
+            break;
+
+        case data_transfer:
+
+            TimerDisable(TIMER0_BASE, TIMER_A );
+            TimerDisable(TIMER0_BASE, TIMER_B );
+
+            deci = SRAMReadMode();
+            dec_ascii(ascii, deci);
+            transfer("SRAM Mode : ", debugConsole);
+            transfer(ascii, debugConsole);
+            transfer("\n\r", debugConsole);
+
+            numberOfSamples = MAX_NO_OF_SAMPLES;
+            sramReadPtr = 0;
+
+            while(numberOfSamples){
+
+                SRAMReadData(adcDataPtr, 15, sramReadPtr);
+                sramReadPtr += 15;
                 numberOfSamples--;
 
                 acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
@@ -236,20 +283,13 @@ int main(void) {
 
                 for (j = 0; j < 15; j++)
                     adcDataPtr[j] = 0;
+
             }
-            break;
 
-        case data_transfer:
-            SRAMSetMode(SRAM_MODE_SEQUENTIAL);
-            transfer("SRAM Initialized\n\r", debugConsole);
-            deci = SRAMReadMode();
-            dec_ascii(ascii, deci);
-            transfer("SRAM Mode : ", debugConsole);
-
-            SRAMReadData(buffer, 36, sramReadPtr);
-            transfer("SRAM Read Data : ", debugConsole);
-            transfer(buffer, debugConsole);
-            transfer("\n\r", debugConsole);
+            if(numberOfSamples == 0){
+                transfer("Transfer Complete\n\r", debugConsole);
+                while(1);
+            }
 
             break;
         default:
