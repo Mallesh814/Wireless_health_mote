@@ -85,6 +85,8 @@ int main(void) {
 
 	uint32_t sramAddrPtr = 0, sramData = 0, temp = 0, mask = 0;
 
+	struct ads1294DataStruct adcData;
+
     uint8 adv_data[] = {
         0x02, // field length
 		gap_ad_type_flags, // field type (0x01)
@@ -184,7 +186,6 @@ int main(void) {
     GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
     GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0XFF); // Toggle LED0 everytime a key is pressed
 
-    /*
     for(i = 0; i < 6; i++){
 
         SysCtlDelay(SysCtlClockGet()/3);
@@ -226,10 +227,9 @@ int main(void) {
         transfer("\n\r\n\r", debugConsole);
     }
 
-    while (1);
-    */
+    //while (1);
 
-    TimerConfig2(2000, 5000);
+    TimerConfig2(500, 5000);
     transfer("Timer Started\n\r", debugConsole);
 
 	while (1) {
@@ -241,236 +241,41 @@ int main(void) {
     	    transfer("\n\r", debugConsole);
     	}
 
-    	if(console_event){
-    		console_event = 0;
-    		switch(uart_char){
-    		case 'r':	ble_cmd_system_reset(0);
-    					ble_active = 0;
-    					break;
-    		case 'm':	ble_cmd_system_address_get();
-    					break;
-    		case 'g':	ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
-    					change_state(state_advertising);
-    					ble_active = 1;
-    					break;
-    		case 'a':	ble_cmd_gap_set_adv_data(0, 0x15, adv_data);
-    					break;
-    		case 's':	ble_cmd_gap_set_adv_data(1, 0x15, sr_data);
-    					break;
-    		case 'u':	ble_cmd_gap_set_mode(gap_user_data, gap_undirected_connectable);
-    					change_state(state_advertising);
-    					ble_active = 1;
-    					break;
-    		case 'd':	dat[0]=0x07;
-						dat[1]++;
-						ble_cmd_attributes_write(0x20,0,2,dat);
-    					break;
-    		default :	ble_cmd_system_hello();
-    					break;
-    		}
-    	}
-
-
-		if(call_parser){
-			call_parser = 0;
-
-			M25P_readBytes(rx_buf, 15, 0x0170);
-		    transfer("Data Read Successful : ", debugConsole);
-		    transfer(rx_buf, debugConsole);
-		    transfer("\n\r", debugConsole);
-
-		    M25P_programBytes(tx_buf, 15, 0x0170);
-
-		    M25P_readBytes(rx_buf, 15, 0x0170);
-		    transfer("Data Read Successful : ", debugConsole);
-		    transfer(rx_buf, debugConsole);
-		    transfer("\n\r", debugConsole);
-
-		    M25P_eraseSector(0x0170);
-
-		    M25P_readBytes(rx_buf, 15, 0x0170);
-		    transfer("Data Read Successful : ", debugConsole);
-		    transfer(rx_buf, debugConsole);
-		    transfer("\n\r", debugConsole);
-
-		    M25P_programBytes(tx_buf, 15, 0x0170);
-
-		    M25P_readBytes(rx_buf, 15, 0x0170);
-		    transfer("Data Read Successful : ", debugConsole);
-		    transfer(rx_buf, debugConsole);
-		    transfer("\n\r", debugConsole);
-
-/*		    M25P_programByte(0x0002,83);
-
-			deci = M25P_readByte(0x0002);
-		    dec_ascii(deci, ascii);
-		    transfer("Data Read Successful : ");
-		    transfer(ascii);
-		    transfer("\n\r");
-*/
-		}
-
     	if(timer_int){
 			timer_int = 0;
 
-			/*
-			sramData++;
-			SRAMWriteByte(sramData, sramAddrPtr);
-		    sramAddrPtr += 1;
-
-		    if (sramAddrPtr == 0x10){
-		        sramData = 1;
-		        sramAddrPtr = 0;
-		        while(sramAddrPtr != 0x10){
-	                temp = SRAMReadByte(sramAddrPtr);
-                    transfer("\n\r Expected : ", debugConsole);
-                    dec_ascii(num, sramData);
-                    transfer(num, debugConsole);
-                    transfer("\n\r Received : ", debugConsole);
-                    dec_ascii(num, temp);
-                    transfer(num, debugConsole);
-	                if(sramData - temp){
-	                    transfer("Data MisMatch in location : ", debugConsole);
-	                    dec_ascii(num, sramAddrPtr);
-	                    transfer(num, debugConsole);
-	                    transfer("\n\r Expected : ", debugConsole);
-                        dec_ascii(num, sramData);
-                        transfer(num, debugConsole);
-                        transfer("\n\r Received : ", debugConsole);
-                        dec_ascii(num, temp);
-                        transfer(num, debugConsole);
-	                }
-	                sramData = (temp + 1)%256;
-	                sramAddrPtr++;
-		        }
-		        while(1);
-		    }
+	        ADS1294_readBytes((uint8_t*)&adcData, 15);
+	        /*
+	        buffer[0] = RDATA;
+			SPI_Read(ads1294Handle, buffer,16);
             */
 
-			buffer[0] = RDATA;
-			SPI_Read(ads1294Handle, buffer,16);
-			GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0X00);	// LED Control Signal OFF
+	        acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+	        //acChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
+            transfer("D10:", debugConsole);
+            dec_ascii(num, acChannel);
+            transfer(num, debugConsole);
 
-			switch(mux){
-			case 0:
-				dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
-                acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+            acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
+            //acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
+            transfer(" D11:", debugConsole);
+            dec_ascii(num, acChannel);
+            transfer(num, debugConsole);
 
-                correctionRed = (uint32_t)((int32_t)correctionRed + (((int32_t)dcChannel - (int32_t)correctionRed) >> 9));
+            acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+            //acChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
+            transfer(" D12:", debugConsole);
+            dec_ascii(num, acChannel);
+            transfer(num, debugConsole);
 
-                dac_val = ((correctionIR >> 13) * 5);
-                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_A);
+            acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
+            //acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
+            transfer(" D3:", debugConsole);
+            dec_ascii(num, acChannel);
+            transfer(num, debugConsole);
+            transfer("\n\r", debugConsole);
 
-				transfer("D10:", debugConsole);
-				dec_ascii(num, dcChannel);
-				transfer(num, debugConsole);
-
-				transfer(" D20:", debugConsole);
-				dec_ascii(num, acChannel);
-				transfer(num, debugConsole);
-
-				/*
-				decimal = dac_val << 4;
-				buffer[0] = 0x4F;
-				buffer[1] = 0xD0;
-				buffer[2] = decimal >> 8;
-				buffer[3] = decimal & 0x00FF;
-				I2C_Write(dacHandle, buffer, 4);
-                */
-
-				break;
-			case 1:
-				dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
-                acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
-                correctionIR = (uint32_t)((int32_t)correctionIR + (((int32_t)dcChannel - (int32_t)correctionIR) >> 9));
-
-                dac_val = ((correction810 >> 13) * 5);
-                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_A);
-
-				transfer("D11:", debugConsole);
-				dec_ascii(num, dcChannel);
-				transfer(num, debugConsole);
-
-				transfer(" D21:", debugConsole);
-				dec_ascii(num, acChannel);
-				transfer(num, debugConsole);
-
-                /*
-				decimal = dac_val << 4;
-				buffer[0] = 0x4F;
-				buffer[1] = 0xD0;
-				buffer[2] = decimal >> 8;
-				buffer[3] = decimal & 0x00FF;
-				I2C_Write(dacHandle, buffer, 4);
-				*/
-
-				break;
-			case 2:
-				dcChannel = (buffer[4] << 16) | (buffer[5] << 8) | (buffer[6]);
-                acChannel = (buffer[7] << 16) | (buffer[8] << 8) | (buffer[9]);
-                correction810 = (uint32_t)((int32_t)correction810 + (((int32_t)dcChannel - (int32_t)correction810 ) >> 9));
-
-                dac_val = ((correction1300 >> 13) * 5);
-                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_B);
-
-				transfer("D12:", debugConsole);
-				dec_ascii(num, dcChannel);
-				transfer(num, debugConsole);
-
-
-				transfer(" D22:", debugConsole);
-				dec_ascii(num, acChannel);
-				transfer(num, debugConsole);
-
-                /*
-				decimal = dac_val << 4;
-				buffer[0] = 0x4F;
-				buffer[1] = 0xD2;
-				buffer[2] = decimal >> 8;
-				buffer[3] = decimal & 0x00FF;
-				I2C_Write(dacHandle, buffer, 4);
-				*/
-				break;
-			case 3:
-				dcChannel = (buffer[10] << 16) | (buffer[11] << 8) | (buffer[12]);
-                acChannel = (buffer[13] << 16) | (buffer[14] << 8) | (buffer[15]);
-                correction1300 = (uint32_t)((int32_t)correction1300 + (((int32_t)dcChannel - (int32_t)correction1300 ) >> 9));
-
-                dac_val = ((correctionRed >> 13) * 5);
-                dac7573_Send(sensor_dac7573Handle, dac_val, sensChannel_A);
-
-				transfer("D3:", debugConsole);
-				dec_ascii(num, dcChannel);
-				transfer(num, debugConsole);
-
-
-				transfer(" D4:", debugConsole);
-				dec_ascii(num, acChannel);
-				transfer(num, debugConsole);
-
-                /*
-				decimal = dac_val << 4;
-				buffer[0] = 0x4F;
-				buffer[1] = 0xD0;
-				buffer[2] = decimal >> 8;
-				buffer[3] = decimal & 0x00FF;
-				I2C_Write(dacHandle, buffer, 4);
-				*/
-
-				break;
-			default : mux = 0;
-				break;
-			}
-
-			transfer("\n\r", debugConsole);
-
-			/*
-			transfer("W:", debugConsole);
-			dec_ascii(num, dac_val);
-			transfer(num, debugConsole);
-			transfer("\n\r", debugConsole);
-			*/
-			for (i=1; i<16; i++)
+            for (i=1; i<16; i++)
 				buffer[i] = 0;
 		}
 

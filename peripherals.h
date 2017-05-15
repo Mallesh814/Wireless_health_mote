@@ -84,7 +84,6 @@ i2c_deviceHandle tempSensorHandle;
 ble_deviceHandle ble113Handle;
 
 deMux deMuxLed;
-struct ads1294DataStruct adcData;
 
 typedef enum {
     selRed  = 0x00,

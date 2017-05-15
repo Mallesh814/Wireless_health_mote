@@ -55,7 +55,7 @@ void configurePeripherals(){
 
     ble_cmd_system_reset(0);
 
-    adcSsiBase = InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_1, SSI_MODE_MASTER, 1000000, 8, 0);
+    adcSsiBase = InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_1, SSI_MODE_MASTER, 2000000, 8, 0);
 
     ads1294Handle.ssiBase = adcSsiBase;
     ads1294Handle.csPort = GPIO_PORTD_BASE;
