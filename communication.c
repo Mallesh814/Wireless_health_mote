@@ -36,25 +36,6 @@ void SPI_Read(ssi_deviceHandle deviceHandle,
 	while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive));  // Clear FIFO After a read Operation.
 }
 
-void SPI_Read_Dummy(ssi_deviceHandle deviceHandle,
-              unsigned char* data,
-              unsigned char bytesNumber)
-{
-    uint8_t i = 0;
-    uint32_t ui32Receive;
-    uint8_t dummyData[] = "SPI_DUMMY_DATA_FOR_TEST";
-
-
-    for(i = 0; i < bytesNumber; i++){
-        data[i] = (uint8_t)(dummyData[i]);
-    }
-
-    while(SSIBusy(deviceHandle.ssiBase));
-
-    GPIOPinWrite(deviceHandle.csPort,deviceHandle.csPin, 0XFF);         // PULL UP Slave Select PIN
-    while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive));  // Clear FIFO After a read Operation.
-}
-
 
 /***************************************************************************//**
  * @brief Writes data to SPI.
@@ -137,25 +118,6 @@ uint32_t SPI_Read_Packet(ssi_deviceHandle deviceHandle,
 
     GPIOPinWrite(deviceHandle.csPort,deviceHandle.csPin, 0XFF); // PULL UP Slave Slect PIN
     while(SSIDataGetNonBlocking(deviceHandle.ssiBase, &ui32Receive)); // Clear FIFO After a Write Operation
-
-    return i-1;
-}
-
-
-uint32_t SPI_Read_Packet_Dummy(ssi_deviceHandle deviceHandle,
-                          ssi_packetHandle packetHandle)
-{
-    uint32_t i;
-    uint32_t ui32Receive;
-    uint8_t dummyData[] = "SPI_DUMMY_DATA_FOR_TEST";
-
-    for(i = 0; i < packetHandle.instLen; i++){
-        packetHandle.instBuffer[i] = (uint8_t) (dummyData[i]);
-    }
-
-    for(i = 0; i < packetHandle.dataLen; i++){
-        packetHandle.dataBuffer[i] = (uint8_t) (dummyData[i]);
-    }
 
     return i-1;
 }

@@ -121,10 +121,10 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 
 	buffer[0] = WREG | CH1SET;
 	buffer[1] = 0x03;
-	buffer[2] = CHnSET_const | MVDD | GAIN_X1;
-	buffer[3] = CHnSET_const | MVDD | GAIN_X1;
-	buffer[4] = CHnSET_const | MVDD | GAIN_X1;
-	buffer[5] = CHnSET_const | MVDD | GAIN_X1;
+	buffer[2] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
+	buffer[3] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
+	buffer[4] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
+	buffer[5] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
 	status = SPI_Write(deviceHandle, buffer, 6);
 	transfer("ADS1294 Channel Commands Sent \n\r", debugConsole);
 
