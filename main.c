@@ -51,6 +51,8 @@ void TimerConfig2(uint32_t freq, uint32_t width){
 
 int main(void) {
 
+    deviceState = initialize;
+
     bglib_output = output;
     uint8_t dat[8] = {0,0,0,0,0,0,0,0};
 
@@ -152,6 +154,7 @@ int main(void) {
 
     ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
     change_state(state_advertising);
+
     adcHandle = ADS1294_Init(ads1294Handle);
     while(adcHandle == 0){
         adcHandle = ADS1294_Init(ads1294Handle);
@@ -166,10 +169,14 @@ int main(void) {
     dac7573_Send(driver_dac7573Handle, dac_val, sel810);
     dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
+    deviceState = wait_for_ble;
+
     GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
-    GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0XFF); // Toggle LED0 everytime a key is pressed
+    GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin); // Toggle LED0 everytime a key is pressed
 
     TimerConfig2(2000, 5000);
+
+    TimerConfig2(1000, 5000);
     transfer("Timer Started\n\r", debugConsole);
 
 	while (1) {
@@ -184,11 +191,11 @@ int main(void) {
     	if(timer_int){
 			timer_int = 0;
 
-			ADS1294_readBytes((uint8_t*)&adcData, 15);
-            GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
+	        ADS1294_readBytes((uint8_t*)&adcData, 15);
+	        GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
 
             acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-            transfer("D10:", debugConsole);
+            transfer(" D10:", debugConsole);
             dec_ascii(num, acChannel);
             transfer(num, debugConsole);
 
