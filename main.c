@@ -128,6 +128,11 @@ int main(void) {
 	uint32_t dcChannel, acChannel, filteredData;
 	uint32_t dac_val=0;
 
+	uint32_t rawWritePtr = 0;
+    uint32_t rawReadPtr = 0;
+    uint32_t filterWritePtr = 0;
+    uint32_t filterReadPtr = 0;
+
 	uint32_t sramWritePtr = 0, sramReadPtr = 0, sramData = 0, temp = 0;
 	uint32_t flashWritePtr = 0, flashReadPtr = 0;
 	uint32_t numberOfSamples = 0;
@@ -271,6 +276,7 @@ int main(void) {
             break;
 
         case configuring:
+
             adcFailCount = MAX_ADC_FAIL_COUNT;
             do{
                 adcHandle = ADS1294_Init(ads1294Handle);
@@ -293,16 +299,12 @@ int main(void) {
             GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
             GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin); // Toggle LED0 everytime a key is pressed
 
-            sramWritePtr = 0;
-            sramReadPtr = 0;
+            rawWritePtr = RAW_DATA_BASE;
+            rawReadPtr  = RAW_DATA_BASE;
 
-            SRAMSetMode(SRAM_MODE_SEQUENTIAL);
-            transfer("SRAM Initialized\n\r", debugConsole);
-            deci = SRAMReadMode();
-            dec_ascii(ascii, deci);
-            transfer("SRAM Mode : ", debugConsole);
-            transfer(ascii, debugConsole);
-            transfer("\n\r", debugConsole);
+            for(i=0; i < 2; i++){
+                M25P_eraseSector(rawWritePtr + (i * M25P_SECTOR_SIZE));
+            }
 
             numberOfSamples = MAX_NO_OF_SAMPLES;
             change_deviceState(siganl_acquisition);
@@ -320,8 +322,8 @@ int main(void) {
                 GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
                 numberOfSamples--;
 
-                SRAMWriteData(adcDataPtr, 15, sramWritePtr);
-                sramWritePtr += 15;
+                M25P_programBytes(adcDataPtr, 15, rawWritePtr);
+                rawWritePtr += 15;
 
                 for (j = 0; j < 15; j++)
                     adcDataPtr[j] = 0;
@@ -330,8 +332,8 @@ int main(void) {
                     change_deviceState(filtering);
                 }
             }
-
             break;
+
         case filtering:
             ADS1294_stopConv(ads1294Handle);
             TimerDisable(TIMER0_BASE, TIMER_A );
@@ -344,9 +346,12 @@ int main(void) {
             blockSize = 128;
             numBlocks = MAX_NO_OF_SAMPLES/blockSize;
 
-            sramReadPtr = 0;
-            flashWritePtr = 0;
-            M25P_eraseSector(flashWritePtr);
+            rawReadPtr  = RAW_DATA_BASE;
+            filterWritePtr = FILTER_DATA_BASE;
+
+            for(i=0; i < 2; i++){
+                M25P_eraseSector(filterWritePtr + (i * M25P_SECTOR_SIZE));
+            }
 
             transfer("Filter Initialization\n\r ", debugConsole);
 
@@ -362,8 +367,8 @@ int main(void) {
             {
                 transfer("Filter Block\n\r", debugConsole);
                 for(j=0; j < blockSize; j++){
-                    SRAMReadData(adcDataPtr, 15, sramReadPtr);
-                    sramReadPtr += 15;
+                    M25P_readBytes(adcDataPtr, 15, rawReadPtr);
+                    rawReadPtr += 15;
                     inputQ32[j] = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
 
                     for (k = 0; k < 15; k++)
@@ -371,11 +376,11 @@ int main(void) {
                 }
                 arm_fir_q31(&S2, inputQ32, outputQ32, blockSize);
 
-                M25P_programBytes((uint8_t *)outputQ32, (blockSize*4), flashWritePtr);
-                flashWritePtr += (blockSize*4);
+                M25P_programBytes((uint8_t *)outputQ32, (blockSize*4), filterWritePtr);
+                filterWritePtr += (blockSize*4);
             }
 
-            dec_ascii(ascii, flashWritePtr);
+            dec_ascii(ascii, filterWritePtr);
             transfer("Flash WritePointer At: ", debugConsole);
             transfer(ascii, debugConsole);
             transfer("\n\r", debugConsole);
@@ -384,19 +389,14 @@ int main(void) {
             break;
 
         case data_transfer:
-            deci = SRAMReadMode();
-            dec_ascii(ascii, deci);
-            transfer("SRAM Mode : ", debugConsole);
-            transfer(ascii, debugConsole);
-            transfer("\n\r", debugConsole);
 
             numberOfSamples = MAX_NO_OF_SAMPLES;
-            sramReadPtr = 0;
+            rawReadPtr  = RAW_DATA_BASE;
 
             while(numberOfSamples){
 
-                SRAMReadData(adcDataPtr, 15, sramReadPtr);
-                sramReadPtr += 15;
+                M25P_readBytes(adcDataPtr, 15, rawReadPtr);
+                rawReadPtr += 15;
                 numberOfSamples--;
 
                 acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
@@ -426,13 +426,12 @@ int main(void) {
             }
 
             numberOfSamples = MAX_NO_OF_SAMPLES;
-            flashReadPtr = 0;
+            filterReadPtr = FILTER_DATA_BASE;
 
             while(numberOfSamples){
-
                 filteredData = 0;
-                M25P_readBytes((uint8_t*)&filteredData, 4, flashReadPtr);
-                flashReadPtr += 4;
+                M25P_readBytes((uint8_t*)&filteredData, 4, filterReadPtr);
+                filterReadPtr += 4;
                 numberOfSamples--;
 
                 transfer("F10:", debugConsole);
@@ -496,19 +495,19 @@ Timer0AIntHandler(void)
     switch(mux){
     case 0:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     case 1:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selIr);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     case 2:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     case 3:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
     	break;
     }
     TimerEnable(TIMER0_BASE, TIMER_B );

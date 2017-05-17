@@ -28,6 +28,8 @@
 #define M25P_DEEP_POWER_DOWN                 0xb9
 #define M25P_RELEASE_DEEP_POWER_DOWN         0xab
 
+#define M25P_SECTOR_SIZE    0x00010000
+
 
 //Configuration
 #define M25P_SSI_BASE SSI0_BASE

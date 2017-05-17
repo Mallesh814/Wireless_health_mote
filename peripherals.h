@@ -21,6 +21,9 @@
 
 #include "ble113.h"
 
+#define RAW_DATA_BASE       0x00000000  //Sector 0 in Flash
+#define FILTER_DATA_BASE    0x00200000  //Sector 32 in Flash
+
 #define MAX_ADC_FAIL_COUNT 4
 // 1Mbit Ram => 131072 Bytes => 43690 Units of ADC Data(1 Unit = 3 Bytes) => 8738 Samples (Including Status and 4 Channels) => 4.3 Seconds
 // (1024*1024)/(8*3*5) = 8738
