@@ -62,9 +62,9 @@ void configurePeripherals(){
     // BLE Reset Pin PB3, Wake Up pin PB2
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
     GPIOPinTypeGPIOOutput(ble113Handle.portBase, ble113Handle.rstPin);
+
     GPIOPinWrite(ble113Handle.portBase, ble113Handle.rstPin, 0X00); // Active Low Reset. Make the reset pin low
-    temp = 20;
-    while(temp--);
+    SysCtlDelay(SysCtlClockGet()/3000);
     GPIOPinWrite(ble113Handle.portBase, ble113Handle.rstPin, 0XFF); // Pull up the Reset pin after some delay
 
 
@@ -76,7 +76,7 @@ void configurePeripherals(){
     temp = UARTIntStatus(bleConsole, true);
     UARTIntClear(bleConsole, temp);
 
-    ble_cmd_system_reset(0);
+    //ble_cmd_system_reset(0);
 
     adcSsiBase = InitSPI(SSI3_BASE, SSI_FRF_MOTO_MODE_1, SSI_MODE_MASTER, 2000000, 8, 0);
 

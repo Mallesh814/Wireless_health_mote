@@ -12,7 +12,7 @@ bd_addr found_devices[MAX_DEVICES];
 bd_addr connect_addr;
 
 enum actions action = action_none;
-states state = state_standby;
+
 extern uint32_t debugConsole;
 
 
@@ -76,6 +76,14 @@ void enable_indications(uint8 connection_handle, uint16 client_configuration_han
 {
     uint8 configuration[] = {0x02, 0x00}; // enable indications
     ble_cmd_attclient_attribute_write(connection_handle, thermometer_handle_configuration, 2, &configuration);
+}
+
+void ble_evt_system_boot(const struct ble_msg_system_boot_evt_t *msg)
+{
+    transfer("ble_evt_system_boot\n\r", UART0_BASE);
+    ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
+    change_state(state_advertising);
+
 }
 
 

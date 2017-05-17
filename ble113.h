@@ -51,6 +51,8 @@ typedef enum {
     state_last
 } states;
 
+states state;
+
 void output(uint8 , uint8* , uint16 , uint8* );
 void print_raw_packet(struct ble_header* , unsigned char* );
 void change_state(states );

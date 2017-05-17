@@ -54,6 +54,7 @@ int main(void) {
     deviceState = initialize;
 
     bglib_output = output;
+    state = state_standby;
     uint8_t dat[8] = {0,0,0,0,0,0,0,0};
 
     uint32_t deci = 0, ble_active = 0;

@@ -458,12 +458,6 @@ void ble_rsp_test_debug(const struct ble_msg_test_debug_rsp_t *msg)
 {
 }
 
-void ble_evt_system_boot(const struct ble_msg_system_boot_evt_t *msg)
-{
-	transfer("ble_evt_system_boot\n\r", UART0_BASE);
-
-}
-
 void ble_evt_system_debug(const struct ble_msg_system_debug_evt_t *msg)
 {
 }
