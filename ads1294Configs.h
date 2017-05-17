@@ -20,6 +20,7 @@
 
 uint32_t ADS1294_Init(ssi_deviceHandle);
 void ADS1294_readBytes(uint8_t*, uint8_t );
+void ADS1294_stopConv(ssi_deviceHandle);
 
 void TimerConfig(uint32_t );
 

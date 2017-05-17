@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "driverlib/uart.h"
+#include "peripherals.h"
 
 void uart_list_devices();
 int uart_find_serialport(char *name);

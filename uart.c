@@ -24,8 +24,6 @@
 #include <stdint.h>
 #include "uart.h"
 
-uint32_t bleConsole;
-
 int uart_tx(int len,unsigned char *data)
 {
     while (len){

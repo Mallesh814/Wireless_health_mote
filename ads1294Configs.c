@@ -121,7 +121,7 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 
 	buffer[0] = WREG | CH1SET;
 	buffer[1] = 0x03;
-	buffer[2] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
+	buffer[2] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
 	buffer[3] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
 	buffer[4] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
 	buffer[5] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
@@ -155,6 +155,13 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	return deviceHandle.ssiBase;
 }
 
+void ADS1294_stopConv(ssi_deviceHandle deviceHandle){
+    uint8_t buffer[1];
+
+    buffer[0] = STARTCON;
+    SPI_Write(deviceHandle, buffer, 1);
+    transfer("ADS1294 Start Conversion Command Sent \n\r", debugConsole);
+}
 
 void ADS1294_readBytes(uint8_t *buffer, uint8_t buffer_size) {
 

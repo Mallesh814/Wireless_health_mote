@@ -63,6 +63,10 @@ extern uint32_t __STACK_TOP;
 // the program if located at a start address other than 0.
 //
 //*****************************************************************************
+
+extern void isr_debugConsole(void);
+extern void isr_bleConsole();
+
 #pragma DATA_SECTION(g_pfnVectors, ".intvecs")
 void (* const g_pfnVectors[])(void) =
 {

@@ -41,7 +41,7 @@ uint32_t M25P_readStatus();
 bool M25P_isBusy();
 bool M25P_isWritable();
 void M25P_programByte(uint32_t addr,uint8_t b);
-void M25P_programBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address);
+void M25P_programBytes(uint8_t *buffer, uint32_t buffer_size, uint32_t address);
 uint8_t M25P_readByte(uint32_t addr);
 void M25P_readBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address);
 
@@ -51,6 +51,6 @@ void M25P_bulkErase();
 void M25P_enableWrite();
 void M25P_disableWrite();
 void M25P_sendAddress(uint32_t addr);
-void M25P_programPage(uint8_t *buffer, uint8_t buffer_size, uint32_t address);
+void M25P_programPage(uint8_t *buffer, uint32_t buffer_size, uint32_t address);
 
 #endif

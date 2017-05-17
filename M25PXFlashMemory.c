@@ -119,10 +119,10 @@ void M25P_readBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
 }
 
 
-void M25P_programBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
-	int i=0;
+void M25P_programBytes(uint8_t *buffer, uint32_t buffer_size, uint32_t address) {
+	uint32_t i = 0;
     while (i < buffer_size) {
-        int writeSize = 0x100 - (address & 0xff);
+        uint32_t writeSize = 0x00100 - (address & 0x00ff);
         if (writeSize > buffer_size - i) writeSize = buffer_size - i;
 
         M25P_programPage(buffer, writeSize, address);
@@ -135,7 +135,7 @@ void M25P_programBytes(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
 }
 
 
-void M25P_programPage(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
+void M25P_programPage(uint8_t *buffer, uint32_t buffer_size, uint32_t address) {
 
     ssi_packetHandle packetHandle;
     uint8_t instBuffer[4];
@@ -154,6 +154,7 @@ void M25P_programPage(uint8_t *buffer, uint8_t buffer_size, uint32_t address) {
     packetHandle.dataLen = buffer_size;
 
     SPI_Write_Packet(flashM25pHandle, packetHandle);
+    while(M25P_isBusy()) ;
 
 }
 
@@ -191,6 +192,8 @@ void M25P_eraseSector(uint32_t address) {
     M25P_enableWrite();
 
     SPI_Write(flashM25pHandle, buffer, 4);
+
+    while(M25P_isBusy());
 
 }
 
