@@ -299,6 +299,8 @@ int main(void) {
             GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
             GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin); // Toggle LED0 everytime a key is pressed
 
+            //while(1);
+
             rawWritePtr = RAW_DATA_BASE;
             rawReadPtr  = RAW_DATA_BASE;
 
@@ -495,19 +497,19 @@ Timer0AIntHandler(void)
     switch(mux){
     case 0:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
+    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
     	break;
     case 1:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selIr);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
+        GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
     	break;
     case 2:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
+        GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
     	break;
     case 3:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);	// Toggle LED0 everytime a key is pressed
+        GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
     	break;
     }
     TimerEnable(TIMER0_BASE, TIMER_B );

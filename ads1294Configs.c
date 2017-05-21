@@ -13,7 +13,8 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	uint32_t status, i = 0;
 	uint8_t num[10] = "\0";
 
-	SysCtlDelay(SysCtlClockGet()/3);
+
+    SysCtlDelay(SysCtlClockGet()/3);
 
 	buffer[0] = RESET;
 	status = SPI_Write(deviceHandle, buffer, 1);
@@ -25,7 +26,7 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	status = SPI_Write(deviceHandle, buffer, 1);
 	transfer("ADS1294 Stop Command Sent \n\r", debugConsole);
 
-	buffer[0] = RREG | ID;
+    buffer[0] = RREG | ID;
 	buffer[1] = 0x00;
 	buffer[2] = 0x00;
 
@@ -121,10 +122,10 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 
 	buffer[0] = WREG | CH1SET;
 	buffer[1] = 0x03;
-	buffer[2] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
-	buffer[3] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
-	buffer[4] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
-	buffer[5] = CHnSET_const | TEST_SIGNAL | GAIN_X6;
+	buffer[2] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
+	buffer[3] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
+	buffer[4] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
+	buffer[5] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
 	status = SPI_Write(deviceHandle, buffer, 6);
 	transfer("ADS1294 Channel Commands Sent \n\r", debugConsole);
 

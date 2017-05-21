@@ -105,9 +105,9 @@ deMux deMuxLed;
 
 typedef enum {
     selRed  = 0x00,
-    selIr   = 0x03,
+    selIr   = 0x01,
     sel810  = 0x02,
-    sel1300 = 0x01
+    sel1300 = 0x03
 } ledSelect;
 
 ledSelect sensChannel_A;
