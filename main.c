@@ -128,7 +128,12 @@ int main(void) {
 	uint32_t dcChannel, acChannel, filteredData;
 	uint32_t dac_val=0;
 
-	uint32_t rawWritePtr = 0;
+    uint32_t rawRedPtr  = RAW_RED_BASE;
+    uint32_t rawIrPtr   = RAW_IR_BASE;
+    uint32_t raw810Ptr  = RAW_810_BASE;
+    uint32_t raw1300Ptr = RAW_1300_BASE;
+
+    uint32_t rawWritePtr = 0;
     uint32_t rawReadPtr = 0;
     uint32_t filterWritePtr = 0;
     uint32_t filterReadPtr = 0;
@@ -137,9 +142,10 @@ int main(void) {
 	uint32_t flashWritePtr = 0, flashReadPtr = 0;
 	uint32_t numberOfSamples = 0;
 
-	struct ads1294DataStruct adcData;
 	uint8_t *adcDataPtr = (uint8_t *)&adcData;
-	uint8_t adcFailCount = MAX_ADC_FAIL_COUNT;
+    uint8_t *channelDataPtr = (uint8_t *)&channelData;
+
+    uint8_t adcFailCount = MAX_ADC_FAIL_COUNT;
 
     uint8 adv_data[] = {
         0x02, // field length
@@ -301,11 +307,25 @@ int main(void) {
 
             //while(1);
 
-            rawWritePtr = RAW_DATA_BASE;
-            rawReadPtr  = RAW_DATA_BASE;
+            rawWritePtr = RAW_RED_BASE;
+            rawReadPtr  = RAW_RED_BASE;
 
-            for(i=0; i < 2; i++){
-                M25P_eraseSector(rawWritePtr + (i * M25P_SECTOR_SIZE));
+            rawRedPtr  = RAW_RED_BASE;
+            rawIrPtr   = RAW_IR_BASE;
+            raw810Ptr  = RAW_810_BASE;
+            raw1300Ptr = RAW_1300_BASE;
+
+            for(i = 0; i < 2; i++){
+                M25P_eraseSector(rawRedPtr + (i * M25P_SECTOR_SIZE));
+            }
+            for(i = 0; i < 2; i++){
+                M25P_eraseSector(rawIrPtr + (i * M25P_SECTOR_SIZE));
+            }
+            for(i = 0; i < 2; i++){
+                M25P_eraseSector(raw810Ptr + (i * M25P_SECTOR_SIZE));
+            }
+            for(i = 0; i < 2; i++){
+                M25P_eraseSector(raw1300Ptr + (i * M25P_SECTOR_SIZE));
             }
 
             numberOfSamples = MAX_NO_OF_SAMPLES;
@@ -324,8 +344,45 @@ int main(void) {
                 GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
                 numberOfSamples--;
 
-                M25P_programBytes(adcDataPtr, 15, rawWritePtr);
-                rawWritePtr += 15;
+                switch(mux){
+                case 0:
+                    channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    M25P_programBytes(channelDataPtr, 16, rawRedPtr);
+                    rawRedPtr += 16;
+                    /*
+                    acChannel = channelData.rawMain;
+                    transfer("TR:", debugConsole);
+                    dec_ascii(num, acChannel);
+                    transfer(num, debugConsole);
+                    transfer("\n\r", debugConsole);
+                    */
+                    break;
+                case 1:
+                    channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    M25P_programBytes(channelDataPtr, 16, rawIrPtr);
+                    rawIrPtr += 16;
+                    break;
+                case 2:
+                    channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    M25P_programBytes(channelDataPtr, 16, raw810Ptr);
+                    raw810Ptr += 16;
+                    break;
+                case 3:
+                    channelData.rawMain     =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    channelData.rawAlt      =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                    M25P_programBytes(channelDataPtr, 16, raw1300Ptr);
+                    raw1300Ptr += 16;
+                    break;
+                default:
+                    transfer("Unknown Error Mux in State : ", debugConsole);
+                    dec_ascii(ascii, mux);
+                    transfer(ascii, debugConsole);
+                    transfer("\n\r",debugConsole);
+                    while(1);
+                }
 
                 for (j = 0; j < 15; j++)
                     adcDataPtr[j] = 0;
@@ -346,12 +403,12 @@ int main(void) {
             inputQ32 = &testInput_f32_1kHz_15kHz[0];
             outputQ32 = &testOutput[0];
             blockSize = 128;
-            numBlocks = MAX_NO_OF_SAMPLES/blockSize;
+            numBlocks = (MAX_NO_OF_SAMPLES/4)/blockSize;
 
-            rawReadPtr  = RAW_DATA_BASE;
+            rawReadPtr  = RAW_RED_BASE;
             filterWritePtr = FILTER_DATA_BASE;
 
-            for(i=0; i < 2; i++){
+            for(i = 0; i < 2; i++){
                 M25P_eraseSector(filterWritePtr + (i * M25P_SECTOR_SIZE));
             }
 
@@ -369,12 +426,12 @@ int main(void) {
             {
                 transfer("Filter Block\n\r", debugConsole);
                 for(j=0; j < blockSize; j++){
-                    M25P_readBytes(adcDataPtr, 15, rawReadPtr);
-                    rawReadPtr += 15;
-                    inputQ32[j] = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                    M25P_readBytes(channelDataPtr, 16, rawReadPtr);
+                    rawReadPtr += 16;
+                    inputQ32[j] = channelData.rawMain;
 
-                    for (k = 0; k < 15; k++)
-                        adcDataPtr[k] = 0;
+                    for (k = 0; k < 16; k++)
+                        channelDataPtr[k] = 0;
                 }
                 arm_fir_q31(&S2, inputQ32, outputQ32, blockSize);
 
@@ -392,42 +449,42 @@ int main(void) {
 
         case data_transfer:
 
-            numberOfSamples = MAX_NO_OF_SAMPLES;
-            rawReadPtr  = RAW_DATA_BASE;
+            numberOfSamples = MAX_NO_OF_SAMPLES/4;
+            rawReadPtr  = RAW_RED_BASE;
 
             while(numberOfSamples){
 
-                M25P_readBytes(adcDataPtr, 15, rawReadPtr);
-                rawReadPtr += 15;
+                M25P_readBytes(channelDataPtr, 16, rawReadPtr);
+                rawReadPtr += 16;
                 numberOfSamples--;
 
-                acChannel = (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                acChannel = channelData.rawMain;
                 transfer("D10:", debugConsole);
                 dec_ascii(num, acChannel);
                 transfer(num, debugConsole);
 
-                acChannel = (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
+                acChannel = channelData.ambientMain;
                 transfer(" D11:", debugConsole);
                 dec_ascii(num, acChannel);
                 transfer(num, debugConsole);
 
-                acChannel = (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                acChannel = channelData.rawAlt;
                 transfer(" D12:", debugConsole);
                 dec_ascii(num, acChannel);
                 transfer(num, debugConsole);
 
-                acChannel = (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
+                acChannel = channelData.ambientAlt;
                 transfer(" D3:", debugConsole);
                 dec_ascii(num, acChannel);
                 transfer(num, debugConsole);
                 transfer("\n\r", debugConsole);
 
-                for (j = 0; j < 15; j++)
-                    adcDataPtr[j] = 0;
+                for (j = 0; j < 16; j++)
+                    channelDataPtr[j] = 0;
 
             }
 
-            numberOfSamples = MAX_NO_OF_SAMPLES;
+            numberOfSamples = MAX_NO_OF_SAMPLES/4;
             filterReadPtr = FILTER_DATA_BASE;
 
             while(numberOfSamples){
@@ -487,32 +544,44 @@ void isr_bleConsole()
 void
 Timer0AIntHandler(void)
 {
+    uint8_t j;
+    uint8_t *adcDataPtr = (uint8_t *)&adcData;
+
     // Clear the timer interrupt flag.
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-
 
     if(mux < 3) mux++;
     else mux = 0;
 
+    ADS1294_readBytes(adcDataPtr, 15);
+
     switch(mux){
     case 0:
-    	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);	// Toggle LED0 everytime a key is pressed
-    	GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);	// Toggle LED0 everytime a key is pressed
+        GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);   // Toggle LED0 everytime a key is pressed
+        channelData.ambientMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+        channelData.ambientAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
     	break;
     case 1:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selIr);	// Toggle LED0 everytime a key is pressed
-        GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
+        channelData.ambientMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+        channelData.ambientAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
     	break;
     case 2:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);	// Toggle LED0 everytime a key is pressed
-        GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
+        channelData.ambientMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+        channelData.ambientAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
     	break;
     case 3:
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);	// Toggle LED0 everytime a key is pressed
-        GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
+        channelData.ambientMain     =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+        channelData.ambientAlt      =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
     	break;
     }
+
+    GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
     TimerEnable(TIMER0_BASE, TIMER_B );
+    for (j = 0; j < 15; j++)
+        adcDataPtr[j] = 0;
 }
 
 void

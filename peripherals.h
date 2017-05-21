@@ -21,7 +21,13 @@
 
 #include "ble113.h"
 
-#define RAW_DATA_BASE       0x00000000  //Sector 0 in Flash
+#define RAW_RED_BASE    0x00000000  //Sector 0 in Flash
+#define RAW_IR_BASE     0x00080000  //Sector 0 in Flash
+#define RAW_810_BASE    0x00100000  //Sector 0 in Flash
+#define RAW_1300_BASE   0x00180000  //Sector 0 in Flash
+
+
+
 #define FILTER_DATA_BASE    0x00200000  //Sector 32 in Flash
 
 #define MAX_ADC_FAIL_COUNT 4
@@ -89,7 +95,18 @@ PACKSTRUCT(struct ads1294DataStruct
     uint8_t ch3[3];
     uint8_t ch4[3];
 });
+struct ads1294DataStruct adcData;
 
+
+PACKSTRUCT(struct channelDataStruct
+{
+    uint32_t rawMain;
+    uint32_t ambientMain;
+    uint32_t rawAlt;
+    uint32_t ambientAlt;
+});
+
+struct channelDataStruct channelData;
 
 ssi_deviceHandle sram23LcvHandle;
 ssi_deviceHandle flashM25pHandle;
