@@ -161,7 +161,7 @@ void ADS1294_stopConv(ssi_deviceHandle deviceHandle){
 
     buffer[0] = STARTCON;
     SPI_Write(deviceHandle, buffer, 1);
-    transfer("ADS1294 Start Conversion Command Sent \n\r", debugConsole);
+    transfer("ADS1294 Stop Conversion Command Sent \n\r", debugConsole);
 }
 
 void ADS1294_readBytes(uint8_t *buffer, uint8_t buffer_size) {

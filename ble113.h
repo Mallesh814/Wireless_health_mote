@@ -12,8 +12,8 @@
 #include <stdbool.h>
 #include "inc/hw_memmap.h"
 #include "driverlib/gpio.h"
+#include "peripherals.h"
 #include "cmd_def.h"
-#include "uart.h"
 #include "parser.h"
 
 #define MAX_DEVICES 64
@@ -38,6 +38,7 @@ enum actions {
 };
 
 typedef enum {
+    state_poweroff,
 	state_standby,
 	state_advertising,
     state_disconnected,
@@ -56,6 +57,7 @@ states state;
 void output(uint8 , uint8* , uint16 , uint8* );
 void print_raw_packet(struct ble_header* , unsigned char* );
 void change_state(states );
+states get_state();
 int cmp_bdaddr(bd_addr , bd_addr );
 void print_bdaddr(bd_addr );
 void enable_indications(uint8 , uint16 );

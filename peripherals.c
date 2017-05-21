@@ -8,6 +8,43 @@
 #include "peripherals.h"
 
 
+int uart_tx(uint16_t len,unsigned char *data)
+{
+    while (len){
+        UARTCharPut(ble113Handle.uartBase, *data);
+        len--;
+        data++;
+    }
+
+    return 0;
+}
+int uart_rx(int len,unsigned char *data,int timeout_ms)
+{
+    int l=len;
+    int32_t rread;
+    int trials = 0;
+
+    while(len)
+    {
+        rread = UARTCharGetNonBlocking(ble113Handle.uartBase);
+        if(rread < 0) {
+            trials++;
+            if(trials < timeout_ms)
+                continue;
+            else
+                return -1;
+        }
+        trials = 0;
+        *data = (uint8_t) (rread & 0x00FF);
+
+        len--;
+        data++;
+
+    }
+return l;
+}
+
+
 void change_deviceState(deviceStateMachine new_state)
 {
 #ifdef DEBUG

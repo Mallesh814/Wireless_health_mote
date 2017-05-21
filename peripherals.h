@@ -19,16 +19,50 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/i2c.h"
 
-#include "ble113.h"
+#include "parser.h"
+
+/* Compability */
+#ifndef PACKSTRUCT
+/*Default packed configuration*/
+#ifdef __GNUC__
+#ifdef _WIN32
+#define PACKSTRUCT( decl ) decl __attribute__((__packed__,gcc_struct))
+#else
+#define PACKSTRUCT( decl ) decl __attribute__((__packed__))
+#endif
+#define ALIGNED __attribute__((aligned(0x4)))
+#elif __IAR_SYSTEMS_ICC__
+
+#define PACKSTRUCT( decl ) __packed decl
+
+#define ALIGNED
+#elif _MSC_VER  //msvc
+
+#define PACKSTRUCT( decl ) __pragma( pack(push, 1) ) decl __pragma( pack(pop) )
+#define ALIGNED
+#else
+//#define PACKSTRUCT(a) a PACKED
+#define PACKSTRUCT(a) a __attribute__((packed))
+#endif
+#endif
+
+
 
 #define RAW_RED_BASE    0x00000000  //Sector 0 in Flash
 #define RAW_IR_BASE     0x00080000  //Sector 0 in Flash
 #define RAW_810_BASE    0x00100000  //Sector 0 in Flash
 #define RAW_1300_BASE   0x00180000  //Sector 0 in Flash
 
-
-
 #define FILTER_DATA_BASE    0x00200000  //Sector 32 in Flash
+
+#define FIR_RED_SIGNAL_BASE     0x00200000  //Sector 0 in Flash
+#define FIR_RED_AMBIENT_BASE    0x00240000  //Sector 0 in Flash
+#define FIR_IR_SIGNAL_BASE      0x00280000  //Sector 0 in Flash
+#define FIR_IR_AMBIENT_BASE     0x002C0000  //Sector 0 in Flash
+#define FIR_810_SIGNAL_BASE     0x00300000  //Sector 0 in Flash
+#define FIR_810_AMBIENT_BASE    0x00340000  //Sector 0 in Flash
+#define FIR_1300_SIGNAL_BASE    0x00380000  //Sector 0 in Flash
+#define FIR_1300_AMBIENT_BASE   0x003C0000  //Sector 0 in Flash
 
 #define MAX_ADC_FAIL_COUNT 4
 // 1Mbit Ram => 131072 Bytes => 43690 Units of ADC Data(1 Unit = 3 Bytes) => 8738 Samples (Including Status and 4 Channels) => 4.3 Seconds
@@ -108,6 +142,13 @@ PACKSTRUCT(struct channelDataStruct
 
 struct channelDataStruct channelData;
 
+PACKSTRUCT(struct filterPtrStruct
+{
+    uint32_t signalPtr;
+    uint32_t ambientPtr;
+});
+
+
 ssi_deviceHandle sram23LcvHandle;
 ssi_deviceHandle flashM25pHandle;
 ssi_deviceHandle ads1294Handle;
@@ -117,6 +158,7 @@ i2c_deviceHandle sensor_dac7573Handle;
 i2c_deviceHandle tempSensorHandle;
 
 ble_deviceHandle ble113Handle;
+uint32_t debugConsole, bleConsole, decimal;
 
 deMux deMuxLed;
 
@@ -130,7 +172,6 @@ typedef enum {
 ledSelect sensChannel_A;
 ledSelect sensChannel_B;
 
-uint32_t debugConsole, bleConsole, decimal;
 
 uint32_t filterInput[256];
 uint32_t filterOutput[256];
@@ -157,6 +198,8 @@ uint32_t InitSPI(uint32_t , uint32_t , uint32_t , uint32_t , uint32_t , bool );
 uint32_t InitI2C(uint32_t , bool);
 
 uint32_t InitConsole(uint32_t , uint32_t );
+int uart_tx(uint16_t len,unsigned char *data);
+int uart_rx(int len,unsigned char *data,int timeout_ms);
 
 
 #endif /* PERIPHERALS_H_ */

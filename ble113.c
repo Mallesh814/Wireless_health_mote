@@ -13,9 +13,6 @@ bd_addr connect_addr;
 
 enum actions action = action_none;
 
-extern uint32_t debugConsole;
-
-
 uint8 primary_service_uuid[] = {0x00, 0x28};
 
 uint16 thermometer_handle_start = 0,
@@ -23,12 +20,18 @@ uint16 thermometer_handle_start = 0,
        thermometer_handle_measurement = 0,
        thermometer_handle_configuration = 0;
 
+states get_state()
+{
+    return state;
+}
+
 
 void change_state(states new_state)
 {
 #ifdef DEBUG
     uint8_t *state_names[state_last] = {
-		"standby",
+		"poweroff",
+        "standby",
 		"advertising",
 	    "disconnected",
 	    "connecting",
@@ -80,9 +83,10 @@ void enable_indications(uint8 connection_handle, uint16 client_configuration_han
 
 void ble_evt_system_boot(const struct ble_msg_system_boot_evt_t *msg)
 {
-    transfer("ble_evt_system_boot\n\r", UART0_BASE);
-    ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
-    change_state(state_advertising);
+    transfer("ble_evt_system_boot\n\r", debugConsole);
+    change_state(state_standby);
+    //ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
+    //change_state(state_advertising);
 
 }
 
@@ -401,9 +405,10 @@ void output(uint8 len1, uint8* data1, uint16 len2, uint8* data2)
 	uint8_t dat;
     transfer("Sending : Data\n\r", debugConsole);
 	dat = len1+len2;
-    if (uart_tx(1, &dat) || uart_tx(len1, data1) || uart_tx(len2, data2)) {
-        transfer("ERROR: Writing to serial port failed\n\r", debugConsole);
-    }
+
+	uart_tx(1, &dat);
+    uart_tx(len1, data1);
+    uart_tx(len2, data2);
 }
 
 void print_raw_packet(struct ble_header *hdr, unsigned char *data)
@@ -415,13 +420,11 @@ void print_raw_packet(struct ble_header *hdr, unsigned char *data)
     int i;
 
     for (i = 0; i < sizeof(*hdr); i++) {
-//        printf("%02x ", ((unsigned char *)hdr)[i]);
     	int_hex_ascii(num, ((unsigned char *)hdr)[i]);
 		transfer(num, debugConsole);
 		transfer(":", debugConsole);
     }
     for (i = 0; i < hdr->lolen; i++) {
-//        printf("%02x ", data[i]);
     	int_hex_ascii(num, data[i]);
 		transfer(num, debugConsole);
 		transfer(":", debugConsole);
@@ -469,7 +472,6 @@ int read_message(int timeout_ms)
     if (!msg) {
         transfer("ERROR: Unknown message received\n\r", debugConsole);
         return 1;
-//        exit(1);
     }
 
     msg->handler(data);

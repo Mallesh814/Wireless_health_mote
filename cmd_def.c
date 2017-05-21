@@ -408,7 +408,8 @@ void ble_send_message(uint8 msgid,...)
             i=i>>4;
         }
         va_end(va);
-            if(bglib_output)bglib_output(sizeof(struct ble_header)+apis[msgid].hdr.lolen,(uint8*)&packet,data_len,(uint8*)data_ptr);
+            if(bglib_output)
+                bglib_output(sizeof(struct ble_header)+apis[msgid].hdr.lolen,(uint8*)&packet,data_len,(uint8*)data_ptr);
 }
 
 static const struct ble_msg* const ble_class_system_rsp_handlers[]=
