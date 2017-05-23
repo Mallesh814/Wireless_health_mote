@@ -23,21 +23,25 @@
 #define BLOCK_SIZE            128
 #define NUM_TAPS              61
 
+#define NUM_OF_LEDS           4
+#define DATA_PERIOD           12
+#define CHUNK_PERIOD          3
+#define SAMPLING_RATE         500
+#define DATA_CHUNK_LENGTH     1536
+
+#define MAX_NO_OF_SAMPLES (SAMPLING_RATE * DATA_PERIOD * NUM_OF_LEDS)
+
 /* -------------------------------------------------------------------
  * Declare State buffer of size (numTaps + blockSize - 1)
  * ------------------------------------------------------------------- */
 
-static q31_t firStateF32[BLOCK_SIZE + NUM_TAPS - 1];
-
 static q31_t firStateSignal[BLOCK_SIZE + NUM_TAPS - 1];
 static q31_t firStateAmbient[BLOCK_SIZE + NUM_TAPS - 1];
-static q31_t firStateAlt[BLOCK_SIZE + NUM_TAPS - 1];
-static q31_t firStateAltAmb[BLOCK_SIZE + NUM_TAPS - 1];
 
-static q31_t signalInputBuffer[BLOCK_SIZE];
-static q31_t signalOutputBuffer[BLOCK_SIZE];
-static q31_t ambientInputBuffer[BLOCK_SIZE];
-static q31_t ambientOutputBuffer[BLOCK_SIZE];
+static q31_t signalInputBuffer[DATA_CHUNK_LENGTH];
+static q31_t ambientInputBuffer[DATA_CHUNK_LENGTH];
+static q31_t filterOutputBuffer[DATA_CHUNK_LENGTH];
+
 /* ----------------------------------------------------------------------
 ** FIR Coefficients buffer generated using fir1() MATLAB function.
 ** fir1(28, 6/24)
@@ -118,11 +122,11 @@ int main(void) {
     uint32_t deci = 0;
     uint8_t ascii[6]="\0";
 	uint8_t num[10]="\0";
-	uint8_t tx_buf[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYY";
-	uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	//uint8_t tx_buf[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYY";
+	//uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 
-	uint32_t i, j, k, l, p, adcHandle;
+	uint32_t i, j, k, led, chunk, p, adcHandle;
 	uint32_t acChannel, filteredData;
 	uint32_t dac_val=0;
 
@@ -143,7 +147,7 @@ int main(void) {
     filterDataStructs[sel1300].signalPtr = FIR_1300_SIGNAL_BASE;
     filterDataStructs[sel1300].ambientPtr = FIR_1300_AMBIENT_BASE;
 
-	uint32_t sramWritePtr = 0, sramReadPtr = 0;
+	//uint32_t sramWritePtr = 0, sramReadPtr = 0;
 	uint32_t numberOfSamples = 0;
 
 	uint8_t *adcDataPtr = (uint8_t *)&adcData;
@@ -184,12 +188,7 @@ int main(void) {
     SysCtlClockSet(SYSCTL_SYSDIV_8|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
 
     arm_fir_instance_q31 SignalState, AmbientState;
-    q31_t  *SignalInput, *SignalOutput;
-    q31_t  *AmbientInput, *AmbientOutput;
-
-    /* Initialize input and output buffer pointers */
-    SignalInput = &signalInputBuffer[0];
-    SignalOutput = &signalOutputBuffer[0];
+    q31_t  *SignalInput, *AmbientInput, *filterOutput;
 
     configurePeripherals();
 
@@ -204,46 +203,7 @@ int main(void) {
         transfer("FLASH ID : ", debugConsole);
         transfer(ascii, debugConsole);
         transfer("\n\r", debugConsole);
-
-        deci = M25P_readStatus();
-        dec_ascii(ascii, deci);
-        transfer("FLASH Status : ", debugConsole);
-        transfer(ascii, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        SRAMSetMode(SRAM_MODE_SEQUENTIAL);
-        transfer("SRAM Initialized\n\r", debugConsole);
-        deci = SRAMReadMode();
-        dec_ascii(ascii, deci);
-        transfer("SRAM Mode : ", debugConsole);
-        transfer(ascii, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        sramReadPtr = sramWritePtr;
-        SRAMReadData(buffer, 36, sramReadPtr);
-        transfer("SRAM Read Data : ", debugConsole);
-        transfer(buffer, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        SRAMWriteByte(99, sramWritePtr);
-        deci = SRAMReadByte(sramReadPtr);
-        dec_ascii(ascii, deci);
-        transfer("SRAM Read Byte : ", debugConsole);
-        transfer(ascii, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        sramWritePtr++;
-        SRAMWriteData(tx_buf, 36, sramWritePtr);
-
-        sramReadPtr = sramWritePtr;
-        SRAMReadData(buffer, 36, sramReadPtr);
-        transfer("SRAM Read Data : ", debugConsole);
-        transfer(buffer, debugConsole);
-        transfer("\n\r", debugConsole);
     #endif
-
-    sramWritePtr = 0;
-    sramReadPtr = 0;
 
     //ble_cmd_gap_set_mode(gap_general_discoverable,gap_undirected_connectable);
     //change_state(state_advertising);
@@ -308,10 +268,12 @@ int main(void) {
             rawDataPtrs[sel1300]= RAW_1300_BASE;
 
 
-            for (j = 0 ; j < 4; j++){
-                for(i = 0; i < 2; i++){
-                    M25P_eraseSector(rawDataPtrs[j] + (i * M25P_SECTOR_SIZE));
-                }
+            for (led = 0 ; led < 4; led++){
+                i = 0;
+                do{
+                    M25P_eraseSector(rawDataPtrs[led] + (i * M25P_SECTOR_SIZE));
+                    i++;
+                }while(i < ((SAMPLING_RATE * DATA_PERIOD * 4 * 4)/M25P_SECTOR_SIZE));
             }
 
             for (j = 0; j < 15; j++)
@@ -339,31 +301,29 @@ int main(void) {
                     channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selRed]);
                     rawDataPtrs[selRed] += 16;
-
-                    transfer("TR:", debugConsole);
-                    dec_ascii(num, channelData.rawMain);
-                    transfer(num, debugConsole);
-
-                    transfer("\n\r", debugConsole);
                     break;
+
                 case 1:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
                     channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selIr]);
                     rawDataPtrs[selIr] += 16;
                     break;
+
                 case 2:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
                     channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel810]);
                     rawDataPtrs[sel810] += 16;
                     break;
+
                 case 3:
                     channelData.rawMain     =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
                     channelData.rawAlt      =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel1300]);
                     rawDataPtrs[sel1300] += 16;
                     break;
+
                 default:
                     transfer("Unknown Error Mux in State : ", debugConsole);
                     dec_ascii(ascii, mux);
@@ -382,19 +342,16 @@ int main(void) {
             break;
 
         case filtering:
+
             ADS1294_stopConv(ads1294Handle);
             TimerDisable(TIMER0_BASE, TIMER_A );
             TimerDisable(TIMER0_BASE, TIMER_B );
             GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00); // Toggle LED0 everytime a key is pressed
 
             /* Initialize input and output buffer pointers */
-            SignalInput = &signalInputBuffer[0];
-            SignalOutput = &signalOutputBuffer[0];
-            AmbientInput = &ambientInputBuffer[0];
-            AmbientOutput = &ambientOutputBuffer[0];
-
-            blockSize = BLOCK_SIZE;
-            numBlocks = (MAX_NO_OF_SAMPLES/4)/blockSize;
+            SignalInput   = &signalInputBuffer[0];
+            AmbientInput  = &ambientInputBuffer[0];
+            filterOutput  = &filterOutputBuffer[0];
 
             rawDataPtrs[selRed] = RAW_RED_BASE;
             rawDataPtrs[selIr]  = RAW_IR_BASE;
@@ -410,20 +367,20 @@ int main(void) {
             filterDataStructs[sel1300].signalPtr = FIR_1300_SIGNAL_BASE;
             filterDataStructs[sel1300].ambientPtr = FIR_1300_AMBIENT_BASE;
 
-            for (j = 0; j < 4; j++){
-
-                for(i = 0; i < 2; i++){
-                    M25P_eraseSector(filterDataStructs[j].signalPtr + (i * M25P_SECTOR_SIZE));
-                }
-
-                for(i = 0; i < 2; i++){
-                    M25P_eraseSector(filterDataStructs[j].ambientPtr + (i * M25P_SECTOR_SIZE));
-                }
+            for (led = 0; led < NUM_OF_LEDS; led++){
+                // Erase Sectors Before Writing any Data. The number of Sectors to be erased is given by the expression in for loop
+                i = 0;
+                do{
+                    M25P_eraseSector(filterDataStructs[led].signalPtr + (i * M25P_SECTOR_SIZE));
+                    M25P_eraseSector(filterDataStructs[led].ambientPtr + (i * M25P_SECTOR_SIZE));
+                    i++;
+                }while(i < ((4 * DATA_PERIOD * SAMPLING_RATE)/(M25P_SECTOR_SIZE)));
             }
 
             transfer("Filter Initialization\n\r ", debugConsole);
             /* Call FIR init function to initialize the instance structure. */
 
+            blockSize = BLOCK_SIZE;
             arm_fir_init_q31(&SignalState, NUM_TAPS, (q31_t *)&firCoeffs32[0], &firStateSignal[0], blockSize);
             arm_fir_init_q31(&AmbientState, NUM_TAPS, (q31_t *)&firCoeffs32[0], &firStateAmbient[0], blockSize);
             transfer("Signal and Ambient Filters Initialized\n\r ", debugConsole);
@@ -431,45 +388,61 @@ int main(void) {
             /* ----------------------------------------------------------------------
             ** Call the FIR process function for every blockSize samples
             ** ------------------------------------------------------------------- */
-            for(l = 0; l < 4; l++){
+            for(led = 0; led < 4; led++){
 
                 for(p = 0; p < (BLOCK_SIZE + NUM_TAPS - 1); p++){
                     firStateSignal[p] = 0;
                     firStateAmbient[p] = 0;
                 }
 
-                for(i = 0; i < numBlocks; i++)
-                {
-                    for(j = 0; j < blockSize; j++){
+                for(chunk = 0; chunk < (DATA_PERIOD/CHUNK_PERIOD); chunk++){
+
+                    for(j = 0; j < DATA_CHUNK_LENGTH; j++){
 
                         for (k = 0; k < 16; k++)
                             channelDataPtr[k] = 0;
 
-                        M25P_readBytes(channelDataPtr, 16, rawDataPtrs[l]);
-                        rawDataPtrs[l] += 16;
+                        M25P_readBytes(channelDataPtr, 16, rawDataPtrs[led]);
+                        rawDataPtrs[led] += 16;
 
                         SignalInput[j] = channelData.rawMain;
                         AmbientInput[j] = channelData.ambientMain;
                     }
-                    transfer("Filter Block : \n\r", debugConsole);
-                    arm_fir_q31(&SignalState, SignalInput, SignalOutput, blockSize);
-                    arm_fir_q31(&AmbientState, AmbientInput, AmbientOutput, blockSize);
 
-                    M25P_programBytes((uint8_t *)SignalOutput, (blockSize*4), filterDataStructs[l].signalPtr);
-                    filterDataStructs[l].signalPtr += (blockSize*4);
+                    transfer("Filter Chunk : \n\r", debugConsole);
 
-                    M25P_programBytes((uint8_t *)AmbientOutput, (blockSize*4), filterDataStructs[l].ambientPtr);
-                    filterDataStructs[l].ambientPtr += (blockSize*4);
+                    numBlocks = (DATA_CHUNK_LENGTH)/blockSize;
+                    for(i = 0; i < numBlocks; i++)
+                    {
+                        arm_fir_q31(&SignalState, SignalInput + (i * blockSize), filterOutput + (i * blockSize), blockSize);
+                    }
+
+                    M25P_programBytes((uint8_t *)filterOutput, (DATA_CHUNK_LENGTH*4), filterDataStructs[led].signalPtr);
+                    filterDataStructs[led].signalPtr += (DATA_CHUNK_LENGTH*4);
+
+                    for(i = 0; i < numBlocks; i++)
+                    {
+                        arm_fir_q31(&AmbientState, AmbientInput + (i * blockSize), filterOutput + (i * blockSize), blockSize);
+                    }
+                    M25P_programBytes((uint8_t *)filterOutput, (DATA_CHUNK_LENGTH*4), filterDataStructs[led].ambientPtr);
+                    filterDataStructs[led].ambientPtr += (DATA_CHUNK_LENGTH*4);
+
+                    transfer("Filtering Chunk Complete\n\r", debugConsole);
+
+                    // calculates DC mean and subtract DC from signal
+                    signalMean = 0;
+                    for (k = 0 ; k < DATA_CHUNK_LENGTH ; k++ ) signalMean  += filterOutput[k] ;
+                    signalMean = signalMean/DATA_CHUNK_LENGTH;
+
+                    // remove DC
+                    for (k = 0 ; k < DATA_CHUNK_LENGTH ; k++ )
+                        filterOutput[k] = (filterOutput[k] - signalMean) ;
 
                 }
+
             }
-            /*
-            dec_ascii(ascii, filterData.signalPtr);
-            transfer("Flash WritePointer At: ", debugConsole);
-            transfer(ascii, debugConsole);
-            transfer("\n\r", debugConsole);
-            */
-            transfer("Filtering Complete\n\r", debugConsole);
+
+
             change_deviceState(data_transfer);
             break;
 

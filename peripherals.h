@@ -77,7 +77,6 @@
 // 1Mbit Ram => 131072 Bytes => 43690 Units of ADC Data(1 Unit = 3 Bytes) => 43690 Samples (1 Channel Data Only) => 21 Seconds
 // (1024*1024)/(8*3*1) = 21845
 
-#define MAX_NO_OF_SAMPLES 8192
 
 typedef struct
 {
