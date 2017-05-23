@@ -296,7 +296,7 @@ int main(void) {
             dac7573_Send(driver_dac7573Handle, dac_val, selIr);
             dac_val = 0x7FF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel810);
-            dac_val = 0x7FF;
+            dac_val = 0xFFF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
             GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
