@@ -21,7 +21,7 @@
 #define TEST_LENGTH_SAMPLES  512
 #define SNR_THRESHOLD_F32    140.0f
 #define BLOCK_SIZE            128
-#define NUM_TAPS              61
+#define NUM_TAPS              64
 
 /* -------------------------------------------------------------------
  * Declare State buffer of size (numTaps + blockSize - 1)
@@ -44,17 +44,17 @@ static q31_t ambientOutputBuffer[BLOCK_SIZE];
 ** ------------------------------------------------------------------- */
 
 const q31_t firCoeffs32[NUM_TAPS] = {
-                                     2059646,     2328495,     2764568,     3401917,     4271626,     5400826,
-                                     6811790,     8521114,    10539034,    12868869,    15506639,    18440846,
-                                    21652437,    25114957,    28794887,    32652158,    36640842,    40709994,
-                                    44804635,    48866849,    52836966,    56654814,    60260994,    63598160,
-                                    66612273,    69253780,    71478717,    73249684,    74536684,    75317793,
-                                    75579658,    75317793,    74536684,    73249684,    71478717,    69253780,
-                                    66612273,    63598160,    60260994,    56654814,    52836966,    48866849,
-                                    44804635,    40709994,    36640842,    32652158,    28794887,    25114957,
-                                    21652437,    18440846,    15506639,    12868869,    10539034,     8521114,
-                                     6811790,     5400826,     4271626,     3401917,     2764568,     2328495,
-                                     2059646
+                                     0,       32831,      159012,      420617,      859425,     1515611,
+                               2426440,     3624994,     5138977,     6989626,     9190773,    11748077,
+                              14658454,    17909737,    21480566,    25340520,    29450500,    33763345,
+                              38224684,    42773988,    47345809,    51871176,    56279102,    60498173,
+                              64458182,    68091745,    71335887,    74133520,    76434808,    78198361,
+                              79392225,    79994659,    79994659,    79392225,    78198361,    76434808,
+                              74133520,    71335887,    68091745,    64458182,    60498173,    56279102,
+                              51871176,    47345809,    42773988,    38224684,    33763345,    29450500,
+                              25340520,    21480566,    17909737,    14658454,    11748077,     9190773,
+                               6989626,     5138977,     3624994,     2426440,     1515611,      859425,
+                                420617,      159012,       32831,           0
                                     };
 
 /* ------------------------------------------------------------------
@@ -125,8 +125,11 @@ int main(void) {
 	uint32_t i, j, k, l, p, adcHandle;
 	uint32_t acChannel, filteredData;
 	uint32_t dac_val=0;
+	ledSelect dacChannel;
 
-	uint32_t rawDataPtrs[4];
+    uint32_t dcCorrections[4];
+
+    uint32_t rawDataPtrs[4];
 	rawDataPtrs[selRed] = RAW_RED_BASE;
     rawDataPtrs[selIr]  = RAW_IR_BASE;
     rawDataPtrs[sel810] = RAW_810_BASE;
@@ -144,7 +147,7 @@ int main(void) {
     filterDataStructs[sel1300].ambientPtr = FIR_1300_AMBIENT_BASE;
 
 	uint32_t sramWritePtr = 0, sramReadPtr = 0;
-	uint32_t numberOfSamples = 0;
+	uint32_t numberOfSamples = 0, correction1300;
 
 	uint8_t *adcDataPtr = (uint8_t *)&adcData;
     uint8_t *channelDataPtr = (uint8_t *)&channelData;
@@ -210,36 +213,6 @@ int main(void) {
         transfer("FLASH Status : ", debugConsole);
         transfer(ascii, debugConsole);
         transfer("\n\r", debugConsole);
-
-        SRAMSetMode(SRAM_MODE_SEQUENTIAL);
-        transfer("SRAM Initialized\n\r", debugConsole);
-        deci = SRAMReadMode();
-        dec_ascii(ascii, deci);
-        transfer("SRAM Mode : ", debugConsole);
-        transfer(ascii, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        sramReadPtr = sramWritePtr;
-        SRAMReadData(buffer, 36, sramReadPtr);
-        transfer("SRAM Read Data : ", debugConsole);
-        transfer(buffer, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        SRAMWriteByte(99, sramWritePtr);
-        deci = SRAMReadByte(sramReadPtr);
-        dec_ascii(ascii, deci);
-        transfer("SRAM Read Byte : ", debugConsole);
-        transfer(ascii, debugConsole);
-        transfer("\n\r", debugConsole);
-
-        sramWritePtr++;
-        SRAMWriteData(tx_buf, 36, sramWritePtr);
-
-        sramReadPtr = sramWritePtr;
-        SRAMReadData(buffer, 36, sramReadPtr);
-        transfer("SRAM Read Data : ", debugConsole);
-        transfer(buffer, debugConsole);
-        transfer("\n\r", debugConsole);
     #endif
 
     sramWritePtr = 0;
@@ -296,7 +269,7 @@ int main(void) {
             dac7573_Send(driver_dac7573Handle, dac_val, selIr);
             dac_val = 0x7FF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel810);
-            dac_val = 0x7FF;
+            dac_val = 0xFFF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
             GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
@@ -336,33 +309,48 @@ int main(void) {
                 switch(mux){
                 case 0:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    channelData.ambientMain      =  (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selRed]);
                     rawDataPtrs[selRed] += 16;
 
-                    transfer("TR:", debugConsole);
-                    dec_ascii(num, channelData.rawMain);
-                    transfer(num, debugConsole);
+                    dcCorrections[selRed] = (uint32_t)((int32_t)dcCorrections[selRed] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selRed]) >> 7));
 
-                    transfer("\n\r", debugConsole);
+                    dac_val = ((dcCorrections[selIr] >> 13) * 5);
+                    dacChannel = sensChannel_A;
                     break;
                 case 1:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    channelData.ambientMain      =  (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selIr]);
                     rawDataPtrs[selIr] += 16;
+
+                    dcCorrections[selIr] = (uint32_t)((int32_t)dcCorrections[selIr] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selIr]) >> 7));
+
+                    dac_val = ((dcCorrections[sel810] >> 13) * 5);
+                    dacChannel = sensChannel_A;
                     break;
                 case 2:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    channelData.ambientMain      =  (adcData.ch2[0] << 16) | (adcData.ch2[1] << 8) | (adcData.ch2[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel810]);
                     rawDataPtrs[sel810] += 16;
+
+                    dcCorrections[sel810] = (uint32_t)((int32_t)dcCorrections[sel810] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel810]) >> 7));
+
+                    dac_val = ((dcCorrections[sel1300] >> 13) * 5);
+                    dacChannel = sensChannel_B;
                     break;
                 case 3:
                     channelData.rawMain     =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
-                    channelData.rawAlt      =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                    channelData.ambientMain =  (adcData.ch4[0] << 16) | (adcData.ch4[1] << 8) | (adcData.ch4[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel1300]);
                     rawDataPtrs[sel1300] += 16;
+
+                    dcCorrections[sel1300] = (uint32_t)((int32_t)dcCorrections[sel1300] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel1300]) >> 7));
+
+                    dac_val = ((dcCorrections[selRed] >> 13) * 5);
+                    dacChannel = sensChannel_A;
+
                     break;
                 default:
                     transfer("Unknown Error Mux in State : ", debugConsole);
@@ -374,6 +362,8 @@ int main(void) {
 
                 for (j = 0; j < 15; j++)
                     adcDataPtr[j] = 0;
+
+                dac7573_Send(sensor_dac7573Handle, dac_val, dacChannel);
 
                 if(numberOfSamples == 0){
                     change_deviceState(filtering);
