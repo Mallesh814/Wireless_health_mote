@@ -31,6 +31,8 @@
 
 #define MAX_NO_OF_SAMPLES (SAMPLING_RATE * DATA_PERIOD * NUM_OF_LEDS)
 
+#define MAX_PEAKS 10
+
 /* -------------------------------------------------------------------
  * Declare State buffer of size (numTaps + blockSize - 1)
  * ------------------------------------------------------------------- */
@@ -155,6 +157,22 @@ int main(void) {
 
     uint8_t adcFailCount = MAX_ADC_FAIL_COUNT;
 
+    uint32_t signalMean = 0;
+
+    int32_t temp_peaks[MAX_PEAKS];
+    int32_t temp_valleys[MAX_PEAKS];
+    int32_t chunk_average[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
+    int32_t peaks_numbers[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
+    int32_t value_of_peaks[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
+    int32_t found_peaks;
+    int32_t peaks_limit = MAX_PEAKS;
+    int32_t valleys_numbers[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
+    int32_t value_of_valleys[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
+    int32_t found_valleys;
+    int32_t valleys_limit = MAX_PEAKS;
+    int32_t delta_peaks = 2;
+    int32_t peaks_first = 1;
+
     uint8 adv_data[] = {
         0x02, // field length
 		gap_ad_type_flags, // field type (0x01)
@@ -273,7 +291,7 @@ int main(void) {
                 do{
                     M25P_eraseSector(rawDataPtrs[led] + (i * M25P_SECTOR_SIZE));
                     i++;
-                }while(i < ((SAMPLING_RATE * DATA_PERIOD * 4 * 4)/M25P_SECTOR_SIZE));
+                }while(i <= ((SAMPLING_RATE * DATA_PERIOD * 4 * 4)/M25P_SECTOR_SIZE));
             }
 
             for (j = 0; j < 15; j++)
@@ -291,35 +309,41 @@ int main(void) {
             if(timer_int & (numberOfSamples != 0)){
                 timer_int = 0;
 
-                ADS1294_readBytes(adcDataPtr, 15);
                 GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, 0x00);  // Toggle LED0 everytime a key is pressed
+                do{
+                    ADS1294_readBytes(adcDataPtr, 15);
+                }while(adcData.status[0] != 0xC0);
+
                 numberOfSamples--;
 
                 switch(mux){
                 case 0:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    channelData.ambientMain =  channelData.rawMain - channelData.ambientMain;
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selRed]);
                     rawDataPtrs[selRed] += 16;
                     break;
 
                 case 1:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    channelData.ambientMain =  channelData.rawMain - channelData.ambientMain;
+                    //channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selIr]);
                     rawDataPtrs[selIr] += 16;
                     break;
 
                 case 2:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
-                    channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
+                    channelData.ambientMain =  channelData.rawMain - channelData.ambientMain;
+                    //channelData.rawAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel810]);
                     rawDataPtrs[sel810] += 16;
                     break;
 
                 case 3:
                     channelData.rawMain     =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
-                    channelData.rawAlt      =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
+                    channelData.ambientMain =  channelData.rawMain - channelData.ambientMain;
+                    //channelData.rawAlt      =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel1300]);
                     rawDataPtrs[sel1300] += 16;
                     break;
@@ -374,7 +398,7 @@ int main(void) {
                     M25P_eraseSector(filterDataStructs[led].signalPtr + (i * M25P_SECTOR_SIZE));
                     M25P_eraseSector(filterDataStructs[led].ambientPtr + (i * M25P_SECTOR_SIZE));
                     i++;
-                }while(i < ((4 * DATA_PERIOD * SAMPLING_RATE)/(M25P_SECTOR_SIZE)));
+                }while(i <= ((4 * DATA_PERIOD * SAMPLING_RATE)/(M25P_SECTOR_SIZE)));
             }
 
             transfer("Filter Initialization\n\r ", debugConsole);
@@ -409,7 +433,6 @@ int main(void) {
                         AmbientInput[j] = channelData.ambientMain;
                     }
 
-                    transfer("Filter Chunk : \n\r", debugConsole);
 
                     numBlocks = (DATA_CHUNK_LENGTH)/blockSize;
                     for(i = 0; i < numBlocks; i++)
@@ -427,16 +450,30 @@ int main(void) {
                     M25P_programBytes((uint8_t *)filterOutput, (DATA_CHUNK_LENGTH*4), filterDataStructs[led].ambientPtr);
                     filterDataStructs[led].ambientPtr += (DATA_CHUNK_LENGTH*4);
 
-                    transfer("Filtering Chunk Complete\n\r", debugConsole);
-
                     // calculates DC mean and subtract DC from signal
                     signalMean = 0;
                     for (k = 0 ; k < DATA_CHUNK_LENGTH ; k++ ) signalMean  += filterOutput[k] ;
                     signalMean = signalMean/DATA_CHUNK_LENGTH;
 
-                    // remove DC
-                    for (k = 0 ; k < DATA_CHUNK_LENGTH ; k++ )
-                        filterOutput[k] = (filterOutput[k] - signalMean) ;
+                    chunk_average[led][chunk] = signalMean;
+
+                    valleys_limit = MAX_PEAKS;
+                    peaks_limit = MAX_PEAKS;
+                    delta_peaks = signalMean >> 7;
+
+                    detect_peak(filterOutput, DATA_CHUNK_LENGTH, temp_peaks, &found_peaks, peaks_limit, temp_valleys, &found_valleys, valleys_limit, delta_peaks, peaks_first);
+
+                    peaks_numbers[led][chunk] = found_peaks;
+                    for(i = 0; i < found_peaks; i++){
+                        value_of_peaks[led][chunk][i] = (chunk * DATA_CHUNK_LENGTH) + temp_peaks[i];
+                    }
+
+                    valleys_numbers[led][chunk] = found_valleys;
+                    for(i = 0; i < found_valleys; i++){
+                        value_of_valleys[led][chunk][i] = (chunk * DATA_CHUNK_LENGTH) + temp_valleys[i];
+                    }
+
+                    //transfer("Filtering Chunk Complete\n\r", debugConsole);
 
                 }
 
@@ -476,7 +513,7 @@ int main(void) {
                     transfer(":", debugConsole);
                     dec_ascii(num, channelData.ambientMain);
                     transfer(num, debugConsole);
-
+                    /*
                     transfer(":", debugConsole);
                     dec_ascii(num, channelData.rawAlt);
                     transfer(num, debugConsole);
@@ -484,7 +521,7 @@ int main(void) {
                     transfer(":", debugConsole);
                     dec_ascii(num, channelData.ambientAlt);
                     transfer(num, debugConsole);
-
+                    */
                     transfer("\n\r", debugConsole);
                 }
             }
@@ -529,6 +566,58 @@ int main(void) {
                 }
             }
 
+            for(led = 0; led < 4; led++){
+                for(chunk = 0; chunk < (DATA_PERIOD/CHUNK_PERIOD); chunk++){
+                    transfer("M", debugConsole);
+                    dec_ascii(num, led);
+                    transfer(num, debugConsole);
+                    dec_ascii(num, chunk);
+                    transfer(num, debugConsole);
+                    transfer(":", debugConsole);
+
+                    dec_ascii(num, chunk_average[led][chunk]);
+                    transfer(num, debugConsole);
+                    transfer("\n\r", debugConsole);
+                }
+            }
+
+            for(led = 0; led < 4; led++){
+                for(chunk = 0; chunk < (DATA_PERIOD/CHUNK_PERIOD); chunk++){
+                    transfer("P", debugConsole);
+                    dec_ascii(num, led);
+                    transfer(num, debugConsole);
+                    dec_ascii(num, chunk);
+                    transfer(num, debugConsole);
+                    transfer(":", debugConsole);
+
+                    for(i = 0; i < peaks_numbers[led][chunk]; i++){
+                        dec_ascii(num, value_of_peaks[led][chunk][i]);
+                        transfer(num, debugConsole);
+                        transfer(":", debugConsole);
+                    }
+                    transfer("\n\r", debugConsole);
+                }
+            }
+
+
+            for(led = 0; led < 4; led++){
+                for(chunk = 0; chunk < (DATA_PERIOD/CHUNK_PERIOD); chunk++){
+                    transfer("V", debugConsole);
+                    dec_ascii(num, led);
+                    transfer(num, debugConsole);
+                    dec_ascii(num, chunk);
+                    transfer(num, debugConsole);
+                    transfer(":", debugConsole);
+
+                    for(i = 0; i < valleys_numbers[led][chunk]; i++){
+                        dec_ascii(num, value_of_valleys[led][chunk][i]);
+                        transfer(num, debugConsole);
+                        transfer(":", debugConsole);
+                    }
+                    transfer("\n\r", debugConsole);
+                }
+            }
+
             if(numberOfSamples == 0){
                 transfer("Transfer Complete\n\r", debugConsole);
                 change_deviceState(wait_for_ble);
@@ -541,7 +630,6 @@ int main(void) {
             transfer(num, debugConsole);
             transfer("\n\r", debugConsole);
             while(1);
-            break;
         }
     }
 }
