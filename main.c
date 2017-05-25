@@ -124,11 +124,9 @@ int main(void) {
     uint32_t deci = 0;
     uint8_t ascii[6]="\0";
 	uint8_t num[10]="\0";
-	//uint8_t tx_buf[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYY";
-	//uint8_t buffer[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 
-	uint32_t i, j, k, led, chunk, p, adcHandle;
+	int32_t i, j, k, led, chunk, p, adcHandle;
 	uint32_t acChannel, filteredData;
 	uint32_t dac_val=0;
 
@@ -149,7 +147,6 @@ int main(void) {
     filterDataStructs[sel1300].signalPtr = FIR_1300_SIGNAL_BASE;
     filterDataStructs[sel1300].ambientPtr = FIR_1300_AMBIENT_BASE;
 
-	//uint32_t sramWritePtr = 0, sramReadPtr = 0;
 	uint32_t numberOfSamples = 0;
 
 	uint8_t *adcDataPtr = (uint8_t *)&adcData;
@@ -162,16 +159,37 @@ int main(void) {
     int32_t temp_peaks[MAX_PEAKS];
     int32_t temp_valleys[MAX_PEAKS];
     int32_t chunk_average[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
-    int32_t peaks_numbers[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
-    int32_t value_of_peaks[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
+
+    int32_t sorted_chunk_average[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
+
+    int32_t number_of_peaks[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
+    int32_t index_of_peaks[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
+    int32_t amplitude_of_peaks[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
     int32_t found_peaks;
     int32_t peaks_limit = MAX_PEAKS;
-    int32_t valleys_numbers[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
-    int32_t value_of_valleys[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
+    int32_t number_of_valleys[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
+    int32_t index_of_valleys[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
+    int32_t amplitude_of_valleys[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD][MAX_PEAKS];
     int32_t found_valleys;
     int32_t valleys_limit = MAX_PEAKS;
     int32_t delta_peaks = 2;
     int32_t peaks_first = 1;
+
+    int32_t ac, count_ac, deltaValley, newValley, peak_index, peak_value, timeDiff, timetoPeak;
+    int32_t avgAC[NUM_OF_LEDS][DATA_PERIOD/CHUNK_PERIOD];
+    int32_t average_diff[DATA_PERIOD/CHUNK_PERIOD - 1];
+    int32_t chunk1, chunk2, dcValue1,dcValue2, minimum, t, min_index;
+    int32_t final_ac[NUM_OF_LEDS];
+    int32_t final_dc[NUM_OF_LEDS];
+
+    int32_t psi_12, psi_13, psi_32;
+
+    int32_t c0 = 8;      //  (8.5984  << 8)
+    int32_t c_psi_12 = -11;    //  (-11.4053 << 8)
+    int32_t c_psi_13 = 16;     //  (16.7456 << 8)
+    int32_t c_psi_32 = 5;     //  (5.4449 << 8)
+
+    int32_t totalHb = 0;
 
     uint8 adv_data[] = {
         0x02, // field length
@@ -457,32 +475,114 @@ int main(void) {
 
                     chunk_average[led][chunk] = signalMean;
 
+                    sorted_chunk_average[led][chunk] = signalMean;
+
                     valleys_limit = MAX_PEAKS;
                     peaks_limit = MAX_PEAKS;
                     delta_peaks = signalMean >> 7;
 
                     detect_peak(filterOutput, DATA_CHUNK_LENGTH, temp_peaks, &found_peaks, peaks_limit, temp_valleys, &found_valleys, valleys_limit, delta_peaks, peaks_first);
 
-                    peaks_numbers[led][chunk] = found_peaks;
+                    number_of_peaks[led][chunk] = found_peaks;
                     for(i = 0; i < found_peaks; i++){
-                        value_of_peaks[led][chunk][i] = (chunk * DATA_CHUNK_LENGTH) + temp_peaks[i];
+                        index_of_peaks[led][chunk][i] = (chunk * DATA_CHUNK_LENGTH) + temp_peaks[i];
+                        amplitude_of_peaks[led][chunk][i] = filterOutput[temp_peaks[i]];
                     }
 
-                    valleys_numbers[led][chunk] = found_valleys;
+                    number_of_valleys[led][chunk] = found_valleys;
                     for(i = 0; i < found_valleys; i++){
-                        value_of_valleys[led][chunk][i] = (chunk * DATA_CHUNK_LENGTH) + temp_valleys[i];
+                        index_of_valleys[led][chunk][i] = (chunk * DATA_CHUNK_LENGTH) + temp_valleys[i];
+                        amplitude_of_valleys[led][chunk][i] = filterOutput[temp_valleys[i]];
                     }
-
                     //transfer("Filtering Chunk Complete\n\r", debugConsole);
-
                 }
-
             }
-
-
-            change_deviceState(data_transfer);
+            change_deviceState(hb_estimation);
             break;
 
+        case hb_estimation:
+            transfer("Estimating Hb \n\r", debugConsole);
+            for(led = 0; led < 4; led++){
+                transfer("led \n\r", debugConsole);
+
+                for(chunk = 0; chunk < (DATA_PERIOD/CHUNK_PERIOD); chunk++){
+                    transfer("chunk \n\r", debugConsole);
+
+                    ac = 0;
+                    count_ac = 0;
+
+                    for(i = 0; i < number_of_valleys[led][chunk] - 1; i++){
+                        transfer("Valley loop \n\r", debugConsole);
+
+                        timeDiff = index_of_valleys[led][chunk][i+1] - index_of_valleys[led][chunk][i];
+                        if (timeDiff > 600)
+                            continue;
+
+                        transfer("Peaks loop \n\r", debugConsole);
+                        for( j = 0; j < number_of_peaks[led][chunk]; j++){
+                            if (index_of_peaks[led][chunk][j] > index_of_valleys[led][chunk][i]){
+                                peak_index = index_of_peaks[led][chunk][j];
+                                peak_value = amplitude_of_peaks[led][chunk][j];
+                                break;
+                            }
+                        }
+
+                        transfer("delta Calc \n\r", debugConsole);
+                        deltaValley = amplitude_of_valleys[led][chunk][i + 1] - amplitude_of_valleys[led][chunk][i];
+                        timetoPeak = peak_index - index_of_valleys[led][chunk][i];
+
+                        newValley = amplitude_of_valleys[led][chunk][i] + deltaValley * timetoPeak/timeDiff;
+
+                        ac += peak_value - newValley;
+                        count_ac++;
+                    }
+                    avgAC[led][chunk] = ac/count_ac;
+                }//chunk
+                transfer("chunk Done \n\r", debugConsole);
+
+                for(i = 0; i < 3 ; i++){
+                    for(j = 0; j < 3 - i; j++){
+                        if(sorted_chunk_average[led][j] <  sorted_chunk_average[led][j+1]){
+                            t = sorted_chunk_average[led][j];
+                            sorted_chunk_average[led][j]   = sorted_chunk_average[led][j+1];
+                            sorted_chunk_average[led][j+1] = t;
+                        }
+                    }
+                }
+                transfer("Sorting Done \n\r", debugConsole);
+
+                for(i = 0; i < 3 ; i++){
+                    average_diff[i] = (sorted_chunk_average[led][i]) - (sorted_chunk_average[led][i+1]);
+                }
+
+                transfer("Difference Done \n\r", debugConsole);
+                minimum = average_diff[0];
+                min_index = 0;
+                for(i = 0; i < 2; i++){
+                    if(average_diff[i+1] < minimum){
+                        minimum = average_diff[i+1];
+                        min_index = i+1;
+                    }
+                }
+
+                transfer("Dc Values got\n\r", debugConsole);
+                dcValue1 = sorted_chunk_average[led][min_index];
+                dcValue2 = sorted_chunk_average[led][min_index + 1];
+
+                for(i = 0; i < 4 ; i++){
+                    if(dcValue1 == chunk_average[led][i]) chunk1 = i;
+                    if(dcValue2 == chunk_average[led][i]) chunk2 = i;
+                }
+
+                transfer("chunks Ientified\n\r", debugConsole);
+                final_ac[led] = (avgAC[led][chunk1] + avgAC[led][chunk2])/2;
+                final_dc[led] = (chunk_average[led][chunk1] + chunk_average[led][chunk2])/2;
+            }//led
+
+
+            totalHb = c0 + c_psi_12 * ((final_ac[0] * final_dc[1]))/(final_ac[1] * final_dc[0]) + c_psi_13 * ((final_ac[0] * final_dc[2]))/(final_ac[2] * final_dc[0]) + c_psi_32 * ((final_ac[2] * final_dc[1]))/(final_ac[1] * final_dc[2]);
+            change_deviceState(data_transfer);
+            break;
         case data_transfer:
 
             rawDataPtrs[selRed] = RAW_RED_BASE;
@@ -590,8 +690,8 @@ int main(void) {
                     transfer(num, debugConsole);
                     transfer(":", debugConsole);
 
-                    for(i = 0; i < peaks_numbers[led][chunk]; i++){
-                        dec_ascii(num, value_of_peaks[led][chunk][i]);
+                    for(i = 0; i < number_of_peaks[led][chunk]; i++){
+                        dec_ascii(num, index_of_peaks[led][chunk][i]);
                         transfer(num, debugConsole);
                         transfer(":", debugConsole);
                     }
@@ -609,14 +709,36 @@ int main(void) {
                     transfer(num, debugConsole);
                     transfer(":", debugConsole);
 
-                    for(i = 0; i < valleys_numbers[led][chunk]; i++){
-                        dec_ascii(num, value_of_valleys[led][chunk][i]);
+                    for(i = 0; i < number_of_valleys[led][chunk]; i++){
+                        dec_ascii(num, index_of_valleys[led][chunk][i]);
                         transfer(num, debugConsole);
                         transfer(":", debugConsole);
                     }
                     transfer("\n\r", debugConsole);
                 }
             }
+
+            transfer("Final AC : ", debugConsole);
+            for(led = 0; led < 4; led++){
+                dec_ascii(num, final_ac[led]);
+                transfer(num, debugConsole);
+                transfer(":", debugConsole);
+            }
+            transfer("\n\r", debugConsole);
+
+            transfer("Final DC : ", debugConsole);
+            for(led = 0; led < 4; led++){
+                dec_ascii(num, final_dc[led]);
+                transfer(num, debugConsole);
+                transfer(":", debugConsole);
+            }
+            transfer("\n\r", debugConsole);
+
+            transfer("Estimated Hb : ", debugConsole);
+            dec_ascii(num, totalHb);
+            transfer(num, debugConsole);
+            transfer("\n\r", debugConsole);
+
 
             if(numberOfSamples == 0){
                 transfer("Transfer Complete\n\r", debugConsole);

@@ -182,6 +182,7 @@ typedef enum {
     configuring,
     siganl_acquisition,
     filtering,
+    hb_estimation,
     data_transfer,
     deviceState_last
 } deviceStateMachine;

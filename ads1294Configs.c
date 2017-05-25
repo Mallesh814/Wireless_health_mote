@@ -18,13 +18,13 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 
 	buffer[0] = RESET;
 	status = SPI_Write(deviceHandle, buffer, 1);
-	transfer("ADS1294 Reset Command Sent \n\r", debugConsole);
+	//transfer("ADS1294 Reset Command Sent \n\r", debugConsole);
 
     SysCtlDelay(SysCtlClockGet()/3);
 
 	buffer[0] = SDATAC;
 	status = SPI_Write(deviceHandle, buffer, 1);
-	transfer("ADS1294 Stop Command Sent \n\r", debugConsole);
+	//transfer("ADS1294 Stop Command Sent \n\r", debugConsole);
 
     buffer[0] = RREG | ID;
 	buffer[1] = 0x00;
@@ -43,10 +43,12 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 		 */
 	}
 	else {
+	    /*
 		transfer("ADS1294 Initialization Failed \n\r", debugConsole);
 	    int_hex_ascii(num, status);
 	    transfer(num, debugConsole);
 	    transfer("\n\r", debugConsole);
+	    */
 		return 0;
 	}
 
@@ -56,39 +58,24 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	buffer[2] = CONFIG3_const | PD_REFBUF | VREF_4V;
 	status = SPI_Write(deviceHandle, buffer, 3);
 
+	/*
 	buffer[0] = RREG | CONFIG3;
 	buffer[1] = 0x00;
 	buffer[2] = 0x00;
 	SPI_Read(deviceHandle, buffer, 3);
-
 	status = buffer[2];
     transfer("ADs1294 Config 3 register: ", debugConsole);
     int_hex_ascii(num, status);
     transfer(num, debugConsole);
     transfer("\n\r", debugConsole);
-
-    /*
-	buffer[0] = WREG | GPIO;
-	buffer[1] = 0x00;
-	buffer[2] = GPIO_const;
-	status = SPI_Write(deviceHandle, buffer, 3);
-
-	buffer[0] = RREG | GPIO;
-	buffer[1] = 0x00;
-	buffer[2] = 0x00;
-	SPI_Read(deviceHandle, buffer, 3);
-	status = buffer[2];
-    transfer("ADs1294 GPIO register: ", debugConsole);
-    int_hex_ascii(num, status);
-    transfer(num, debugConsole);
-    transfer("\n\r", debugConsole);
-	*/
+    */
 
     buffer[0] = WREG | CONFIG1;
 	buffer[1] = 0x00;
 	buffer[2] = CONFIG1_const | HIGH_RES_32k_SPS | DAISY_EN;
 	status = SPI_Write(deviceHandle, buffer, 3);
 
+	/*
 	buffer[0] = RREG | CONFIG1;
 	buffer[1] = 0x00;
 	buffer[2] = 0x00;
@@ -99,7 +86,7 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
     int_hex_ascii(num, status);
     transfer(num, debugConsole);
     transfer("\n\r", debugConsole);
-
+    */
 
 
 	buffer[0] = WREG | CONFIG2;
@@ -107,6 +94,7 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	buffer[2] = CONFIG2_const | INT_TEST_2HZ;
 	status = SPI_Write(deviceHandle, buffer, 3);
 
+	/*
 	buffer[0] = RREG | CONFIG2;
 	buffer[1] = 0x00;
 	buffer[2] = 0x00;
@@ -119,6 +107,7 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
     transfer("\n\r", debugConsole);
 
     transfer("ADS1294 Config Commands Sent \n\r", debugConsole);
+    */
 
 	buffer[0] = WREG | CH1SET;
 	buffer[1] = 0x03;
@@ -127,6 +116,8 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	buffer[4] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
 	buffer[5] = CHnSET_const | ELECTRODE_INPUT | GAIN_X1;
 	status = SPI_Write(deviceHandle, buffer, 6);
+
+	/*
 	transfer("ADS1294 Channel Commands Sent \n\r", debugConsole);
 
 	buffer[0] = RREG | CH1SET;
@@ -144,10 +135,11 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 	    transfer(num, debugConsole);
 	    transfer("\n\r", debugConsole);
 	}
+    */
 
 	buffer[0] = STARTCON;
 	status = SPI_Write(deviceHandle, buffer, 1);
-	transfer("ADS1294 Start Conversion Command Sent \n\r", debugConsole);
+	//transfer("ADS1294 Start Conversion Command Sent \n\r", debugConsole);
 
 /*	buffer[0] = RDATAC;
 	status = SPI_Write(deviceHandle, buffer, 1);
