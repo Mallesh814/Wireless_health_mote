@@ -479,7 +479,7 @@ int main(void) {
 
                     valleys_limit = MAX_PEAKS;
                     peaks_limit = MAX_PEAKS;
-                    delta_peaks = signalMean >> 7;
+                    delta_peaks = signalMean >> 8;
 
                     detect_peak(filterOutput, DATA_CHUNK_LENGTH, temp_peaks, &found_peaks, peaks_limit, temp_valleys, &found_valleys, valleys_limit, delta_peaks, peaks_first);
 
@@ -580,7 +580,8 @@ int main(void) {
             }//led
 
 
-            totalHb = c0 + c_psi_12 * ((final_ac[0] * final_dc[1]))/(final_ac[1] * final_dc[0]) + c_psi_13 * ((final_ac[0] * final_dc[2]))/(final_ac[2] * final_dc[0]) + c_psi_32 * ((final_ac[2] * final_dc[1]))/(final_ac[1] * final_dc[2]);
+            //totalHb = c0 + c_psi_12 * ((final_ac[0] * final_dc[1]))/(final_ac[1] * final_dc[0]) + c_psi_13 * ((final_ac[0] * final_dc[2]))/(final_ac[2] * final_dc[0]) + c_psi_32 * ((final_ac[2] * final_dc[1]))/(final_ac[1] * final_dc[2]);
+            totalHb = c0 + c_psi_12 * (final_dc[0])/(final_dc[1]) + c_psi_13 * ((final_dc[0]))/(final_dc[2]) + c_psi_32 * ((final_dc[2]))/(final_dc[1]);
             change_deviceState(data_transfer);
             break;
         case data_transfer:
@@ -734,10 +735,15 @@ int main(void) {
             }
             transfer("\n\r", debugConsole);
 
-            transfer("Estimated Hb : ", debugConsole);
-            dec_ascii(num, totalHb);
-            transfer(num, debugConsole);
-            transfer("\n\r", debugConsole);
+            if (final_ac[0] == 0 ||final_ac[1] == 0 || final_ac[2] == 0){
+                transfer("Unable to estimate Hb\n\r", debugConsole);
+            }
+            else{
+                transfer("Estimated Hb : ", debugConsole);
+                dec_ascii(num, totalHb);
+                transfer(num, debugConsole);
+                transfer("\n\r", debugConsole);
+            }
 
 
             if(numberOfSamples == 0){

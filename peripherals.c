@@ -47,13 +47,13 @@ return l;
 
 void change_deviceState(deviceStateMachine new_state)
 {
-#ifdef DEBUG
     uint8_t *state_names[deviceState_last] = {
         "initialize",
-        "wait_for_ble",
+        "wait_for_event",
         "configuring",
         "siganl_acquisition",
         "filtering",
+        "hb_estimation",
         "data_transfer"
     };
 
@@ -62,7 +62,7 @@ void change_deviceState(deviceStateMachine new_state)
     transfer("--> ", debugConsole);
     transfer(state_names[new_state], debugConsole);
     transfer("\n\r", debugConsole);
-#endif
+
     deviceState = new_state;
 }
 
