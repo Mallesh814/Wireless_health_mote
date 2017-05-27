@@ -497,7 +497,7 @@ int main(void) {
                     //transfer("Filtering Chunk Complete\n\r", debugConsole);
                 }
             }
-            change_deviceState(hb_estimation);
+            change_deviceState(data_transfer);
             break;
 
         case hb_estimation:
