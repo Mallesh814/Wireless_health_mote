@@ -50,6 +50,21 @@ static q31_t filterOutputBuffer[DATA_CHUNK_LENGTH];
 ** ------------------------------------------------------------------- */
 
 const q31_t firCoeffs32[NUM_TAPS] = {
+             0,       81602,      354147,      857407,     1627750,     2697019,
+       4091479,     5830887,     7927691,    10386402,    13203144,    16365402,
+      19851978,    23633163,    27671123,    31920486,    36329133,    40839160,
+      45388007,    49909710,    54336265,    58599052,    62630305,    66364579,
+      69740178,    72700520,    75195392,    77182072,    78626293,    79503005,
+      79796950,    79503005,    78626293,    77182072,    75195392,    72700520,
+      69740178,    66364579,    62630305,    58599052,    54336265,    49909710,
+      45388007,    40839160,    36329133,    31920486,    27671123,    23633163,
+      19851978,    16365402,    13203144,    10386402,     7927691,     5830887,
+       4091479,     2697019,     1627750,      857407,      354147,       81602,
+             0
+};
+
+/*
+const q31_t firCoeffs32[NUM_TAPS] = {
                                      2059646,     2328495,     2764568,     3401917,     4271626,     5400826,
                                      6811790,     8521114,    10539034,    12868869,    15506639,    18440846,
                                     21652437,    25114957,    28794887,    32652158,    36640842,    40709994,
@@ -62,6 +77,7 @@ const q31_t firCoeffs32[NUM_TAPS] = {
                                      6811790,     5400826,     4271626,     3401917,     2764568,     2328495,
                                      2059646
                                     };
+*/
 
 /* ------------------------------------------------------------------
  * Global variables for FIR LPF Example
@@ -292,7 +308,7 @@ int main(void) {
             dac7573_Send(driver_dac7573Handle, dac_val, selIr);
             dac_val = 0x7FF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel810);
-            dac_val = 0xFFF;
+            dac_val = 0xBFF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
             GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
@@ -808,16 +824,19 @@ Timer0AIntHandler(void)
 
     switch(mux){
     case 0:
+//        GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);  // Toggle LED0 everytime a key is pressed
         GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);   // Toggle LED0 everytime a key is pressed
         channelData.ambientMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
         channelData.ambientAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
     	break;
     case 1:
+//        GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);  // Toggle LED0 everytime a key is pressed
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selIr);	// Toggle LED0 everytime a key is pressed
         channelData.ambientMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
         channelData.ambientAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
     	break;
     case 2:
+//        GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel1300);  // Toggle LED0 everytime a key is pressed
     	GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, sel810);	// Toggle LED0 everytime a key is pressed
         channelData.ambientMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
         channelData.ambientAlt      =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
