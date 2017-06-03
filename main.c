@@ -272,6 +272,12 @@ int main(void) {
             dac_val = 0xFFF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
+            dac_val = 0x4DA;
+            dacChannel = sensChannel_A;
+            dac7573_Send(sensor_dac7573Handle, dac_val, dacChannel);
+            dacChannel = sensChannel_B;
+            dac7573_Send(sensor_dac7573Handle, dac_val, dacChannel);
+
             GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
             GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin); // Toggle LED0 everytime a key is pressed
 
@@ -313,10 +319,12 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selRed]);
                     rawDataPtrs[selRed] += 16;
 
+                    /*
                     dcCorrections[selRed] = (uint32_t)((int32_t)dcCorrections[selRed] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selRed]) >> 7));
 
                     dac_val = ((dcCorrections[selIr] >> 13) * 5);
                     dacChannel = sensChannel_A;
+                    */
                     break;
                 case 1:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
@@ -324,10 +332,12 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selIr]);
                     rawDataPtrs[selIr] += 16;
 
+                    /*
                     dcCorrections[selIr] = (uint32_t)((int32_t)dcCorrections[selIr] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selIr]) >> 7));
 
                     dac_val = ((dcCorrections[sel810] >> 13) * 5);
                     dacChannel = sensChannel_A;
+                    */
                     break;
                 case 2:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
@@ -335,10 +345,12 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel810]);
                     rawDataPtrs[sel810] += 16;
 
+                    /*
                     dcCorrections[sel810] = (uint32_t)((int32_t)dcCorrections[sel810] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel810]) >> 7));
 
                     dac_val = ((dcCorrections[sel1300] >> 13) * 5);
                     dacChannel = sensChannel_B;
+                    */
                     break;
                 case 3:
                     channelData.rawMain     =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
@@ -346,11 +358,12 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel1300]);
                     rawDataPtrs[sel1300] += 16;
 
+                    /*
                     dcCorrections[sel1300] = (uint32_t)((int32_t)dcCorrections[sel1300] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel1300]) >> 7));
 
                     dac_val = ((dcCorrections[selRed] >> 13) * 5);
                     dacChannel = sensChannel_A;
-
+                    */
                     break;
                 default:
                     transfer("Unknown Error Mux in State : ", debugConsole);
@@ -362,8 +375,10 @@ int main(void) {
 
                 for (j = 0; j < 15; j++)
                     adcDataPtr[j] = 0;
+                /*
 
                 dac7573_Send(sensor_dac7573Handle, dac_val, dacChannel);
+                */
 
                 if(numberOfSamples == 0){
                     change_deviceState(filtering);
@@ -494,6 +509,7 @@ int main(void) {
                     dec_ascii(num, channelData.ambientMain);
                     transfer(num, debugConsole);
 
+                    /*
                     transfer(":", debugConsole);
                     dec_ascii(num, channelData.rawAlt);
                     transfer(num, debugConsole);
@@ -501,7 +517,7 @@ int main(void) {
                     transfer(":", debugConsole);
                     dec_ascii(num, channelData.ambientAlt);
                     transfer(num, debugConsole);
-
+                    */
                     transfer("\n\r", debugConsole);
                 }
             }
