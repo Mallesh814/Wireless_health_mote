@@ -7,6 +7,7 @@
 #include "ads1294Configs.h"
 extern uint32_t debugConsole;
 extern void Timer0AIntHandler(void);
+extern void Timer1AIntHandler(void);
 
 uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
     uint8_t buffer[6] = {0,0,0,0,0,0};
@@ -72,7 +73,8 @@ uint32_t ADS1294_Init(ssi_deviceHandle deviceHandle){
 
     buffer[0] = WREG | CONFIG1;
 	buffer[1] = 0x00;
-	buffer[2] = CONFIG1_const | HIGH_RES_32k_SPS | DAISY_EN;
+//    buffer[2] = CONFIG1_const | HIGH_RES_32k_SPS | DAISY_EN;
+	buffer[2] = CONFIG1_const | HIGH_RES_8k_SPS | DAISY_EN;
 	status = SPI_Write(deviceHandle, buffer, 3);
 
 	/*
@@ -173,7 +175,7 @@ void ADS1294_readBytes(uint8_t *buffer, uint8_t buffer_size) {
 }
 
 
-void TimerConfig(uint32_t freq){
+void Timer0Config(uint32_t freq){
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     // The Timer0 peripheral must be enabled for use.
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
@@ -186,6 +188,21 @@ void TimerConfig(uint32_t freq){
     IntEnable(INT_TIMER0A);
     // Enable Timer0B.
     TimerEnable(TIMER0_BASE, TIMER_A );
+}
+
+void Timer1Config(uint32_t freq){
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+    // The Timer0 peripheral must be enabled for use.
+    TimerConfigure(TIMER1_BASE, TIMER_CFG_ONE_SHOT);
+    // Set the Timer0B load value to 0.625ms.
+    TimerLoadSet(TIMER1_BASE, TIMER_A, SysCtlClockGet() / freq);
+    // Configure the Timer0B interrupt for timer timeout.
+    TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+    TimerIntRegister(TIMER1_BASE, TIMER_A, Timer1AIntHandler);
+    // Enable the Timer0B interrupt on the processor (NVIC).
+    IntEnable(INT_TIMER0A);
+    // Enable Timer0B.
+    //TimerEnable(TIMER1_BASE, TIMER_A );
 }
 
 

@@ -26,7 +26,7 @@
 #define NUM_OF_LEDS           4
 #define DATA_PERIOD           12
 #define CHUNK_PERIOD          3
-#define SAMPLING_RATE         500
+#define SAMPLING_RATE         100
 #define DATA_CHUNK_LENGTH     1536
 
 #define MAX_NO_OF_SAMPLES (SAMPLING_RATE * DATA_PERIOD * NUM_OF_LEDS)
@@ -49,6 +49,22 @@ static q31_t filterOutputBuffer[DATA_CHUNK_LENGTH];
 ** fir1(28, 6/24)
 ** ------------------------------------------------------------------- */
 
+/*
+const q31_t firCoeffs32[NUM_TAPS] = {
+             0,    -1145783,    -2095390,    -2473709,    -1854867,           0,
+       2816159,     5613100,     6876517,     5169783,           0,    -7478955,
+     -14400526,   -17030044,   -12379789,           0,    16914226,    31856390,
+      37036196,    26615968,           0,   -36256705,   -69045056,   -82077503,
+     -61214662,           0,    96662311,   212284562,   322486444,   401648093,
+     430430131,   401648093,   322486444,   212284562,    96662311,           0,
+     -61214662,   -82077503,   -69045056,   -36256705,           0,    26615968,
+      37036196,    31856390,    16914226,           0,   -12379789,   -17030044,
+     -14400526,    -7478955,           0,     5169783,     6876517,     5613100,
+       2816159,           0,    -1854867,    -2473709,    -2095390,    -1145783,
+             0
+};
+*/
+
 const q31_t firCoeffs32[NUM_TAPS] = {
                                      2059646,     2328495,     2764568,     3401917,     4271626,     5400826,
                                      6811790,     8521114,    10539034,    12868869,    15506639,    18440846,
@@ -62,7 +78,6 @@ const q31_t firCoeffs32[NUM_TAPS] = {
                                      6811790,     5400826,     4271626,     3401917,     2764568,     2328495,
                                      2059646
                                     };
-
 /* ------------------------------------------------------------------
  * Global variables for FIR LPF Example
  * ------------------------------------------------------------------- */
@@ -107,7 +122,7 @@ void TimerConfig2(uint32_t freq, uint32_t width){
     IntEnable(INT_TIMER0B);
     // Enable Timer0B.
     TimerEnable(TIMER0_BASE, TIMER_A );
-    TimerEnable(TIMER0_BASE, TIMER_B );
+//    TimerEnable(TIMER0_BASE, TIMER_B );
 }
 
 extern void (*bglib_output)(uint8 len1,uint8* data1,uint16 len2,uint8* data2);
@@ -292,7 +307,7 @@ int main(void) {
             dac7573_Send(driver_dac7573Handle, dac_val, selIr);
             dac_val = 0x7FF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel810);
-            dac_val = 0xFFF;
+            dac_val = 0xAFF;
             dac7573_Send(driver_dac7573Handle, dac_val, sel1300);
 
             GPIOPinWrite(deMuxLed.selBase, deMuxLed.selPins, selRed);    // Toggle LED0 everytime a key is pressed
@@ -318,7 +333,9 @@ int main(void) {
             numberOfSamples = MAX_NO_OF_SAMPLES;
             change_deviceState(siganl_acquisition);
 
-            TimerConfig2(2000, 5000);
+//            TimerConfig2(400, 2000);
+            Timer1Config(2000);
+            Timer0Config(400);
             transfer("Timer Started\n\r", debugConsole);
             break;
 
@@ -830,11 +847,21 @@ Timer0AIntHandler(void)
     }
 
     GPIOPinWrite(deMuxLed.inBase, deMuxLed.inPin, deMuxLed.inPin);  // Toggle LED0 everytime a key is pressed
-    TimerEnable(TIMER0_BASE, TIMER_B );
+//    TimerEnable(TIMER0_BASE, TIMER_B );
+    TimerEnable(TIMER1_BASE, TIMER_A );
     for (j = 0; j < 15; j++)
         adcDataPtr[j] = 0;
 }
 
+void
+Timer1AIntHandler(void)
+{
+    // Clear the timer interrupt flag.
+    TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+    timer_int = 1;
+}
+
+/*
 void
 Timer0BIntHandler(void)
 {
@@ -843,3 +870,4 @@ Timer0BIntHandler(void)
     timer_int = 1;
 }
 
+*/
