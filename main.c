@@ -44,17 +44,17 @@ static q31_t ambientOutputBuffer[BLOCK_SIZE];
 ** ------------------------------------------------------------------- */
 
 const q31_t firCoeffs32[NUM_TAPS] = {
-                                     0,       32831,      159012,      420617,      859425,     1515611,
-                               2426440,     3624994,     5138977,     6989626,     9190773,    11748077,
-                              14658454,    17909737,    21480566,    25340520,    29450500,    33763345,
-                              38224684,    42773988,    47345809,    51871176,    56279102,    60498173,
-                              64458182,    68091745,    71335887,    74133520,    76434808,    78198361,
-                              79392225,    79994659,    79994659,    79392225,    78198361,    76434808,
-                              74133520,    71335887,    68091745,    64458182,    60498173,    56279102,
-                              51871176,    47345809,    42773988,    38224684,    33763345,    29450500,
-                              25340520,    21480566,    17909737,    14658454,    11748077,     9190773,
-                               6989626,     5138977,     3624994,     2426440,     1515611,      859425,
-                                420617,      159012,       32831,           0
+                                     2059646,     2328495,     2764568,     3401917,     4271626,     5400826,
+                                     6811790,     8521114,    10539034,    12868869,    15506639,    18440846,
+                                    21652437,    25114957,    28794887,    32652158,    36640842,    40709994,
+                                    44804635,    48866849,    52836966,    56654814,    60260994,    63598160,
+                                    66612273,    69253780,    71478717,    73249684,    74536684,    75317793,
+                                    75579658,    75317793,    74536684,    73249684,    71478717,    69253780,
+                                    66612273,    63598160,    60260994,    56654814,    52836966,    48866849,
+                                    44804635,    40709994,    36640842,    32652158,    28794887,    25114957,
+                                    21652437,    18440846,    15506639,    12868869,    10539034,     8521114,
+                                     6811790,     5400826,     4271626,     3401917,     2764568,     2328495,
+                                     2059646
                                     };
 
 /* ------------------------------------------------------------------
@@ -319,12 +319,10 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selRed]);
                     rawDataPtrs[selRed] += 16;
 
-                    /*
-                    dcCorrections[selRed] = (uint32_t)((int32_t)dcCorrections[selRed] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selRed]) >> 7));
+                    dcCorrections[selRed] = (uint32_t)((int32_t)dcCorrections[selRed] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selRed]) >> 8));
 
                     dac_val = ((dcCorrections[selIr] >> 13) * 5);
                     dacChannel = sensChannel_A;
-                    */
                     break;
                 case 1:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
@@ -332,12 +330,10 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[selIr]);
                     rawDataPtrs[selIr] += 16;
 
-                    /*
-                    dcCorrections[selIr] = (uint32_t)((int32_t)dcCorrections[selIr] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selIr]) >> 7));
+                    dcCorrections[selIr] = (uint32_t)((int32_t)dcCorrections[selIr] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[selIr]) >> 8));
 
                     dac_val = ((dcCorrections[sel810] >> 13) * 5);
                     dacChannel = sensChannel_A;
-                    */
                     break;
                 case 2:
                     channelData.rawMain     =  (adcData.ch1[0] << 16) | (adcData.ch1[1] << 8) | (adcData.ch1[2]);
@@ -345,12 +341,10 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel810]);
                     rawDataPtrs[sel810] += 16;
 
-                    /*
-                    dcCorrections[sel810] = (uint32_t)((int32_t)dcCorrections[sel810] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel810]) >> 7));
+                    dcCorrections[sel810] = (uint32_t)((int32_t)dcCorrections[sel810] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel810]) >> 8));
 
                     dac_val = ((dcCorrections[sel1300] >> 13) * 5);
                     dacChannel = sensChannel_B;
-                    */
                     break;
                 case 3:
                     channelData.rawMain     =  (adcData.ch3[0] << 16) | (adcData.ch3[1] << 8) | (adcData.ch3[2]);
@@ -358,12 +352,10 @@ int main(void) {
                     M25P_programBytes(channelDataPtr, 16, rawDataPtrs[sel1300]);
                     rawDataPtrs[sel1300] += 16;
 
-                    /*
-                    dcCorrections[sel1300] = (uint32_t)((int32_t)dcCorrections[sel1300] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel1300]) >> 7));
+                    dcCorrections[sel1300] = (uint32_t)((int32_t)dcCorrections[sel1300] + (((int32_t)channelData.rawMain - (int32_t)dcCorrections[sel1300]) >> 8));
 
                     dac_val = ((dcCorrections[selRed] >> 13) * 5);
                     dacChannel = sensChannel_A;
-                    */
                     break;
                 default:
                     transfer("Unknown Error Mux in State : ", debugConsole);
@@ -375,10 +367,8 @@ int main(void) {
 
                 for (j = 0; j < 15; j++)
                     adcDataPtr[j] = 0;
-                /*
 
                 dac7573_Send(sensor_dac7573Handle, dac_val, dacChannel);
-                */
 
                 if(numberOfSamples == 0){
                     change_deviceState(filtering);
